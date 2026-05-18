@@ -70,9 +70,8 @@ const KEY = "fitcal-ai-state-v1";
 
 async function getUserId() {
   try {
-    const currentUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("currentUser") || "{}") : {};
     const { data } = await supabase.auth.getUser();
-    return data?.user?.id || currentUser.id;
+    return data?.user?.id || null;
   } catch {
     return null;
   }
@@ -88,90 +87,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // Listen for Supabase OAuth login events
         supabase.auth.onAuthStateChange((event, session) => {
           if (event === "SIGNED_IN" && session?.user) {
-            const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-            const updatedUser = {
-              ...currentUser,
-              id: session.user.id,
-              email: session.user.email,
-              name: session.user.user_metadata?.full_name || currentUser.name || "Google User",
-              onboardingComplete: currentUser.onboardingComplete ?? false,
-            };
-            localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-            const users = JSON.parse(localStorage.getItem("users") || "[]");
-            if (!users.some((u: any) => u.email === session.user.email)) {
-              users.push(updatedUser);
-              localStorage.setItem("users", JSON.stringify(users));
-            }
+            loadData();
           } else if (event === "SIGNED_OUT") {
-            localStorage.removeItem("currentUser");
+            setState(defaultState);
           }
         });
 
-        const currentUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("currentUser") || "{}") : {};
-        const userKey = currentUser.email ? `pulsepeak_state_${currentUser.email}` : KEY;
-        const raw = typeof window !== "undefined" ? localStorage.getItem(userKey) : null;
-        let loaded = raw ? { ...defaultState, ...JSON.parse(raw) } : defaultState;
-        if (currentUser.profile) {
-          loaded.profile = { ...loaded.profile, ...currentUser.profile };
-        }
+        let loaded = { ...defaultState };
+        const userId = await getUserId();
+        if (userId) {
+          // Fetch Profile
+          const { data: profileData } = await supabase.from("profiles").select("*").eq("id", userId).single();
+          if (profileData) {
+            loaded.profile = {
+              ...loaded.profile,
+              name: profileData.name || loaded.profile.name,
+              goal: profileData.goal || loaded.profile.goal,
+              calorieGoal: profileData.calorie_goal || loaded.profile.calorieGoal,
+              waterGoalMl: profileData.water_goal_ml || loaded.profile.waterGoalMl,
+              proteinGoal: profileData.protein_goal || loaded.profile.proteinGoal,
+              carbsGoal: profileData.carbs_goal || loaded.profile.carbsGoal,
+              fatsGoal: profileData.fats_goal || loaded.profile.fatsGoal,
+              weightKg: profileData.weight_kg || loaded.profile.weightKg,
+            };
+          }
 
-        // Fetch from Supabase if user is logged in
-        if (currentUser.email) {
-          const userId = await getUserId();
-          if (userId) {
-            // Fetch Profile
-            const { data: profileData } = await supabase.from("profiles").select("*").eq("id", userId).single();
-            if (profileData) {
-              loaded.profile = {
-                ...loaded.profile,
-                name: profileData.name || loaded.profile.name,
-                goal: profileData.goal || loaded.profile.goal,
-                calorieGoal: profileData.calorie_goal || loaded.profile.calorieGoal,
-                waterGoalMl: profileData.water_goal_ml || loaded.profile.waterGoalMl,
-                proteinGoal: profileData.protein_goal || loaded.profile.proteinGoal,
-                carbsGoal: profileData.carbs_goal || loaded.profile.carbsGoal,
-                fatsGoal: profileData.fats_goal || loaded.profile.fatsGoal,
-                weightKg: profileData.weight_kg || loaded.profile.weightKg,
-              };
-            }
-
-            // Fetch Meals for today
-            const todayStr = new Date().toISOString().split('T')[0];
-            const { data: mealsData } = await supabase.from("meal_logs").select("*").eq("user_id", userId).eq("logged_date", todayStr);
-            if (mealsData && mealsData.length > 0) {
-              loaded.meals = mealsData.map((m: any) => ({
+          // Fetch Meals for today
+          const todayStr = new Date().toISOString().split('T')[0];
+          const { data: mealsData } = await supabase.from("meal_logs").select("*").eq("user_id", userId).eq("logged_date", todayStr);
+          if (mealsData && mealsData.length > 0) {
+            loaded.meals = mealsData.map((m: any) => ({
+              id: m.id,
+              meal: m.meal_type as MealType,
+              food: {
                 id: m.id,
-                meal: m.meal_type as MealType,
-                food: {
-                  id: m.id,
-                  name: m.food_name,
-                  brand: m.brand,
-                  serving: m.serving,
-                  kcal: m.kcal,
-                  protein: Number(m.protein),
-                  carbs: Number(m.carbs),
-                  fats: Number(m.fats),
-                },
-                servings: Number(m.servings),
-              }));
-            }
+                name: m.food_name,
+                brand: m.brand,
+                serving: m.serving,
+                kcal: m.kcal,
+                protein: Number(m.protein),
+                carbs: Number(m.carbs),
+                fats: Number(m.fats),
+              },
+              servings: Number(m.servings),
+            }));
+          }
 
-            // Fetch Exercises for today
-            const { data: exData } = await supabase.from("exercise_logs").select("*").eq("user_id", userId).eq("logged_date", todayStr);
-            if (exData && exData.length > 0) {
-              loaded.exercises = exData.map((e: any) => ({
-                id: e.id,
-                exercise: { id: e.id, name: e.exercise_name, kcalPerMin: Math.round(e.calories_burned / e.duration_minutes), icon: "⚡" },
-                minutes: e.duration_minutes,
-                kcal: e.calories_burned,
-              }));
-            }
+          // Fetch Exercises for today
+          const { data: exData } = await supabase.from("exercise_logs").select("*").eq("user_id", userId).eq("logged_date", todayStr);
+          if (exData && exData.length > 0) {
+            loaded.exercises = exData.map((e: any) => ({
+              id: e.id,
+              exercise: { id: e.id, name: e.exercise_name, kcalPerMin: Math.round(e.calories_burned / e.duration_minutes), icon: "⚡" },
+              minutes: e.duration_minutes,
+              kcal: e.calories_burned,
+            }));
+          }
 
-            // Fetch Water for today
-            const { data: waterData } = await supabase.from("water_logs").select("*").eq("user_id", userId).eq("logged_date", todayStr).single();
-            if (waterData) {
-              loaded.waterMl = waterData.amount_ml;
-            }
+          // Fetch Water for today
+          const { data: waterData } = await supabase.from("water_logs").select("*").eq("user_id", userId).eq("logged_date", todayStr).single();
+          if (waterData) {
+            loaded.waterMl = waterData.amount_ml;
           }
         }
 
@@ -184,11 +160,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
-    try {
-      const currentUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("currentUser") || "{}") : {};
-      const userKey = currentUser.email ? `pulsepeak_state_${currentUser.email}` : KEY;
-      localStorage.setItem(userKey, JSON.stringify(state));
-    } catch {}
     if (typeof document !== "undefined") {
       document.documentElement.classList.toggle("dark", state.theme === "dark");
     }
@@ -199,32 +170,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setProfile: (p) => setState((s) => {
       const updatedProfile = { ...s.profile, ...p };
       try {
-        const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-        if (currentUser.email) {
-          const updatedUser = { ...currentUser, profile: updatedProfile };
-          localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-          const users = JSON.parse(localStorage.getItem("users") || "[]");
-          const updatedUsers = users.map((u: any) => u.email === currentUser.email ? updatedUser : u);
-          localStorage.setItem("users", JSON.stringify(updatedUsers));
-
-          // Sync with Supabase
-          getUserId().then(userId => {
-            if (userId) {
-              supabase.from("profiles").upsert({
-                id: userId,
-                email: currentUser.email,
-                name: updatedProfile.name,
-                goal: updatedProfile.goal,
-                calorie_goal: updatedProfile.calorieGoal,
-                water_goal_ml: updatedProfile.waterGoalMl,
-                protein_goal: updatedProfile.proteinGoal,
-                carbs_goal: updatedProfile.carbsGoal,
-                fats_goal: updatedProfile.fatsGoal,
-                weight_kg: updatedProfile.weightKg,
-              }).then();
-            }
-          });
-        }
+        // Sync with Supabase
+        getUserId().then(userId => {
+          if (userId) {
+            supabase.from("profiles").upsert({
+              id: userId,
+              name: updatedProfile.name,
+              goal: updatedProfile.goal,
+              calorie_goal: updatedProfile.calorieGoal,
+              water_goal_ml: updatedProfile.waterGoalMl,
+              protein_goal: updatedProfile.proteinGoal,
+              carbs_goal: updatedProfile.carbsGoal,
+              fats_goal: updatedProfile.fatsGoal,
+              weight_kg: updatedProfile.weightKg,
+            }).then();
+          }
+        });
       } catch {}
       return { ...s, profile: updatedProfile };
     }),

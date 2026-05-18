@@ -2,8 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PhoneShell, ScreenHeader } from "@/components/PhoneShell";
 import { useStore } from "@/lib/store";
 import { ChevronRight, Moon, Sun, Bell, LogOut, Crown, Shield, BarChart3, Sparkles, Edit3 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { saveWeightHistory } from "@/lib/mock-data";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — PulsePeak" }] }),
@@ -14,13 +15,12 @@ function Profile() {
   const { state, setProfile, toggleTheme } = useStore();
   const nav = useNavigate();
   const { profile } = state;
-  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-  const userName = currentUser.name || profile.name || "User";
 
+  const [userMeta, setUserMeta] = useState({ email: "", name: profile.name || "User", phone: "" });
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
-    name: userName,
-    phone: currentUser.phone || "",
+    name: profile.name || "User",
+    phone: "",
     age: profile.age || 28,
     heightCm: profile.heightCm || 178,
     weightKg: profile.weightKg || 77,
@@ -28,17 +28,30 @@ function Profile() {
     workoutType: profile.workoutType || "Strength training",
   });
 
-  const handleSave = () => {
-    const updatedUser = {
-      ...currentUser,
-      name: editForm.name,
-      phone: editForm.phone,
-    };
-    localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) {
+        const name = data.user.user_metadata?.full_name || data.user.user_metadata?.name || profile.name || "User";
+        const phone = data.user.user_metadata?.phone || "";
+        setUserMeta({ email: data.user.email || "", name, phone });
+        setEditForm(prev => ({ ...prev, name, phone }));
+      }
+    });
+  }, [profile.name]);
 
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const updatedUsers = users.map((u: any) => u.email === currentUser.email ? updatedUser : u);
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
+  const handleSave = async () => {
+    try {
+      await supabase.auth.updateUser({
+        data: { full_name: editForm.name, phone: editForm.phone }
+      });
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) {
+        await supabase.from("profiles").update({
+          name: editForm.name,
+          weight_kg: Number(editForm.weightKg),
+        }).eq("id", data.user.id);
+      }
+    } catch {}
 
     const updatedProfile = {
       ...profile,
@@ -51,7 +64,13 @@ function Profile() {
     };
     setProfile(updatedProfile as any);
     saveWeightHistory(Number(editForm.weightKg));
+    setUserMeta(prev => ({ ...prev, name: editForm.name, phone: editForm.phone }));
     setIsEditing(false);
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    nav({ to: "/" });
   };
 
   if (isEditing) {
@@ -105,12 +124,12 @@ function Profile() {
       <div className="mx-5 flex items-center gap-4 rounded-3xl bg-gradient-hero p-5 text-primary-foreground shadow-glow relative overflow-hidden">
         <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-gold/20 blur-2xl" />
         <div className="grid h-16 w-16 place-items-center rounded-2xl bg-white/15 font-display text-2xl font-bold backdrop-blur shadow-inner">
-          {userName.charAt(0)}
+          {userMeta.name.charAt(0)}
         </div>
         <div className="flex-1">
-          <p className="font-display text-lg font-bold">{userName}</p>
-          <p className="text-xs text-primary-foreground/80 mt-0.5">{currentUser.email || "user@example.com"}</p>
-          {currentUser.phone && <p className="text-xs text-primary-foreground/70 mt-0.5">{currentUser.phone}</p>}
+          <p className="font-display text-lg font-bold">{userMeta.name}</p>
+          <p className="text-xs text-primary-foreground/80 mt-0.5">{userMeta.email || "user@example.com"}</p>
+          {userMeta.phone && <p className="text-xs text-primary-foreground/70 mt-0.5">{userMeta.phone}</p>}
           <p className="text-xs text-gold font-medium mt-1">{profile.weightKg}kg · {profile.heightCm}cm</p>
         </div>
       </div>
@@ -144,7 +163,7 @@ function Profile() {
         <Row icon={state.theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4 text-primary" />} label={`Switch to ${state.theme === "dark" ? "light" : "dark"} mode`} onClick={toggleTheme} />
       </div>
 
-      <button onClick={() => nav({ to: "/" })} className="mx-5 mt-4 flex w-[calc(100%-2.5rem)] items-center justify-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 py-3.5 text-sm font-semibold text-destructive mb-10">
+      <button onClick={handleSignOut} className="mx-5 mt-4 flex w-[calc(100%-2.5rem)] items-center justify-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 py-3.5 text-sm font-semibold text-destructive mb-10">
         <LogOut className="h-4 w-4" /> Sign out
       </button>
     </PhoneShell>

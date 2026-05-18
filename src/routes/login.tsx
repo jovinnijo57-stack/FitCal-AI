@@ -33,45 +33,28 @@ function Login() {
       return;
     }
 
-    let userObj = null;
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
-      if (!error && data?.user) {
-        const users = JSON.parse(localStorage.getItem("users") || "[]");
-        let existing = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
-        if (!existing) {
-          existing = {
-            id: data.user.id, email: data.user.email, name: data.user.user_metadata?.full_name || "User",
-            phone: data.user.user_metadata?.phone || "", onboardingComplete: false
-          };
-          users.push(existing);
-          localStorage.setItem("users", JSON.stringify(users));
+      if (error) {
+        setErrors({ form: error.message });
+        return;
+      }
+      if (data?.user) {
+        const { data: profile } = await supabase.from("profiles").select("calorie_goal").eq("id", data.user.id).single();
+        if (profile && profile.calorie_goal) {
+          nav({ to: "/dashboard" });
+        } else {
+          nav({ to: "/onboarding" });
         }
-        userObj = existing;
       }
-    } catch (err) { console.error("Supabase login fallback:", err); }
-
-    if (!userObj) {
-      const hashedPw = await hashPassword(pw);
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      userObj = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase() && u.password === hashedPw);
-    }
-
-    if (userObj) {
-      localStorage.setItem("currentUser", JSON.stringify(userObj));
-      if (userObj.onboardingComplete) {
-        nav({ to: "/dashboard" });
-      } else {
-        nav({ to: "/onboarding" });
-      }
-    } else {
-      setErrors({ form: "Invalid email or password." });
+    } catch (err: any) {
+      setErrors({ form: err.message || "Failed to sign in." });
     }
   };
 
   const handleGoogleLogin = async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/onboarding`,
@@ -83,19 +66,7 @@ function Login() {
       });
       if (error) throw error;
     } catch (err: any) {
-      console.warn("Supabase Google OAuth not fully configured, falling back to local simulation:", err);
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      const user = users.find((u: any) => u.email === "google@gmail.com" || u.email === email);
-      if (!user) {
-        setErrors({ google: "Google account not found in local records. Please register first." });
-        return;
-      }
-      localStorage.setItem("currentUser", JSON.stringify(user));
-      if (user.onboardingComplete) {
-        nav({ to: "/dashboard" });
-      } else {
-        nav({ to: "/onboarding" });
-      }
+      setErrors({ google: err.message || "Google login failed." });
     }
   };
 

@@ -120,7 +120,7 @@ function Signup() {
       
       // Register user in Supabase auth.users
       try {
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
@@ -131,17 +131,15 @@ function Signup() {
             }
           }
         });
-        if (error) console.error("Supabase signUp error:", error);
-      } catch (err) {
-        console.error("Supabase signUp exception:", err);
+        if (error) {
+          setErrors({ otp: error.message });
+          return;
+        }
+      } catch (err: any) {
+        setErrors({ otp: err.message || "Registration failed." });
+        return;
       }
 
-      const hashedPassword = await hashPassword(formData.password);
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      const userToSave = { ...formData, phone: fullPhone, password: hashedPassword, onboardingComplete: false };
-      users.push(userToSave);
-      localStorage.setItem("users", JSON.stringify(users));
-      
       setShowSuccessAnim(true);
       setTimeout(() => {
         nav({ to: "/login" });

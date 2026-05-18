@@ -20,18 +20,11 @@ function Onboarding() {
   useEffect(() => {
     async function checkExistingProfile() {
       try {
-        const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-        if (currentUser.onboardingComplete) {
-          nav({ to: "/dashboard" });
-          return;
-        }
         const { data: authData } = await supabase.auth.getUser();
-        const userId = authData?.user?.id || currentUser.id;
+        const userId = authData?.user?.id;
         if (userId) {
           const { data: profileData } = await supabase.from("profiles").select("calorie_goal").eq("id", userId).single();
           if (profileData && profileData.calorie_goal) {
-            const updatedUser = { ...currentUser, onboardingComplete: true };
-            localStorage.setItem("currentUser", JSON.stringify(updatedUser));
             nav({ to: "/dashboard" });
           }
         }
@@ -116,23 +109,15 @@ Provide a JSON response with exactly this structure:
 
     setProfile(updatedProfile as any);
 
-    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-    const updatedUser = { ...currentUser, onboardingComplete: true, profile: updatedProfile };
-    localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const updatedUsers = users.map((u: any) => u.email === currentUser.email ? updatedUser : u);
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
-
     // Save to Supabase profiles table
     try {
       const { data: authData } = await supabase.auth.getUser();
-      const userId = authData?.user?.id || currentUser.id;
+      const userId = authData?.user?.id;
       if (userId) {
         await supabase.from("profiles").upsert({
           id: userId,
-          email: currentUser.email,
-          name: authData?.user?.user_metadata?.full_name || currentUser.name || "PulsePeak User",
+          email: authData.user?.email,
+          name: authData.user?.user_metadata?.full_name || "PulsePeak User",
           goal: data.goal,
           calorie_goal: calorieGoal,
           water_goal_ml: data.waterGoalL * 1000,
