@@ -73,15 +73,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(KEY) : null;
-      if (raw) setState({ ...defaultState, ...JSON.parse(raw) });
+      const currentUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("currentUser") || "{}") : {};
+      const userKey = currentUser.email ? `pulsepeak_state_${currentUser.email}` : KEY;
+      const raw = typeof window !== "undefined" ? localStorage.getItem(userKey) : null;
+      let loaded = raw ? { ...defaultState, ...JSON.parse(raw) } : defaultState;
+      if (currentUser.profile) {
+        loaded.profile = { ...loaded.profile, ...currentUser.profile };
+      }
+      setState(loaded);
     } catch {}
     setReady(true);
   }, []);
 
   useEffect(() => {
     if (!ready) return;
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
+    try {
+      const currentUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("currentUser") || "{}") : {};
+      const userKey = currentUser.email ? `pulsepeak_state_${currentUser.email}` : KEY;
+      localStorage.setItem(userKey, JSON.stringify(state));
+    } catch {}
     if (typeof document !== "undefined") {
       document.documentElement.classList.toggle("dark", state.theme === "dark");
     }
@@ -89,7 +99,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const api: Ctx = {
     state,
-    setProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
+    setProfile: (p) => setState((s) => {
+      const updatedProfile = { ...s.profile, ...p };
+      try {
+        const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+        if (currentUser.email) {
+          const updatedUser = { ...currentUser, profile: updatedProfile };
+          localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+          const users = JSON.parse(localStorage.getItem("users") || "[]");
+          const updatedUsers = users.map((u: any) => u.email === currentUser.email ? updatedUser : u);
+          localStorage.setItem("users", JSON.stringify(updatedUsers));
+        }
+      } catch {}
+      return { ...s, profile: updatedProfile };
+    }),
     addMeal: (meal, food, servings) =>
       setState((s) => ({ ...s, meals: [...s.meals, { id: crypto.randomUUID(), meal, food, servings }] })),
     removeMeal: (id) => setState((s) => ({ ...s, meals: s.meals.filter((m) => m.id !== id) })),

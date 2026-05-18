@@ -41,61 +41,65 @@ export const EXERCISES: Exercise[] = [
   { id: "e8", name: "Hiking", kcalPerMin: 7, icon: "🥾" },
 ];
 
-export const WEIGHT_HISTORY = [
-  { day: "Mon", weight: 78.2 },
-  { day: "Tue", weight: 78.0 },
-  { day: "Wed", weight: 77.8 },
-  { day: "Thu", weight: 77.9 },
-  { day: "Fri", weight: 77.5 },
-  { day: "Sat", weight: 77.3 },
-  { day: "Sun", weight: 77.1 },
-];
+export const WEIGHT_HISTORY: { day: string; weight: number }[] = [];
 
 export function getWeightHistory() {
-  if (typeof window === "undefined") return WEIGHT_HISTORY;
+  if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem("pulsepeak_weight_history");
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    const userKey = currentUser.email ? `pulsepeak_weight_${currentUser.email}` : "pulsepeak_weight_history";
+    const raw = localStorage.getItem(userKey);
     if (raw) return JSON.parse(raw);
+    // If no history exists, initialize with their current profile weight
+    if (currentUser.profile?.weightKg) {
+      const todayStr = new Date().toLocaleDateString("en-US", { weekday: "short" });
+      const initial = [{ day: todayStr, weight: currentUser.profile.weightKg }];
+      localStorage.setItem(userKey, JSON.stringify(initial));
+      return initial;
+    }
   } catch {}
-  return WEIGHT_HISTORY;
+  return [];
 }
 
 export function saveWeightHistory(newWeight: number) {
   if (typeof window === "undefined") return;
-  const current = getWeightHistory();
-  const updated = [...current];
-  updated[updated.length - 1] = { ...updated[updated.length - 1], weight: newWeight };
   try {
-    localStorage.setItem("pulsepeak_weight_history", JSON.stringify(updated));
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    const userKey = currentUser.email ? `pulsepeak_weight_${currentUser.email}` : "pulsepeak_weight_history";
+    let current = getWeightHistory();
+    const todayStr = new Date().toLocaleDateString("en-US", { weekday: "short" });
+    if (current.length === 0) {
+      current = [{ day: todayStr, weight: newWeight }];
+    } else if (current[current.length - 1].day === todayStr) {
+      current[current.length - 1].weight = newWeight;
+    } else {
+      current.push({ day: todayStr, weight: newWeight });
+    }
+    localStorage.setItem(userKey, JSON.stringify(current));
   } catch {}
 }
 
-export const CALORIE_HISTORY = [
-  { day: "Mon", eaten: 2100, burned: 420 },
-  { day: "Tue", eaten: 1980, burned: 380 },
-  { day: "Wed", eaten: 2240, burned: 510 },
-  { day: "Thu", eaten: 1850, burned: 290 },
-  { day: "Fri", eaten: 2050, burned: 460 },
-  { day: "Sat", eaten: 2310, burned: 620 },
-  { day: "Sun", eaten: 1920, burned: 350 },
-];
+export const CALORIE_HISTORY: { day: string; eaten: number; burned: number }[] = [];
 
 export function getCalorieHistory(currentEaten?: number, currentBurned?: number) {
-  if (typeof window === "undefined") return CALORIE_HISTORY;
+  if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem("pulsepeak_calorie_history");
-    let history = raw ? JSON.parse(raw) : [...CALORIE_HISTORY];
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    const userKey = currentUser.email ? `pulsepeak_calorie_${currentUser.email}` : "pulsepeak_calorie_history";
+    const raw = localStorage.getItem(userKey);
+    let history = raw ? JSON.parse(raw) : [];
+    const todayStr = new Date().toLocaleDateString("en-US", { weekday: "short" });
     if (currentEaten !== undefined && currentBurned !== undefined) {
-      history[history.length - 1] = {
-        ...history[history.length - 1],
-        eaten: currentEaten,
-        burned: currentBurned,
-      };
-      localStorage.setItem("pulsepeak_calorie_history", JSON.stringify(history));
+      if (history.length === 0) {
+        history = [{ day: todayStr, eaten: currentEaten, burned: currentBurned }];
+      } else if (history[history.length - 1].day === todayStr) {
+        history[history.length - 1] = { day: todayStr, eaten: currentEaten, burned: currentBurned };
+      } else { history.push({ day: todayStr, eaten: currentEaten, burned: currentBurned }); }
+      localStorage.setItem(userKey, JSON.stringify(history));
     }
     return history;
   } catch {}
-  return CALORIE_HISTORY;
+  return [];
 }
 
 // BMR (Mifflin-St Jeor)

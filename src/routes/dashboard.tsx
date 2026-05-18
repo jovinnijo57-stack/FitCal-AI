@@ -22,6 +22,10 @@ function Dashboard() {
   const weightHistory = getWeightHistory();
   const calorieHistory = getCalorieHistory(totals.eaten.kcal, totals.burned);
   const latestWeight = weightHistory.at(-1)?.weight || profile.weightKg;
+  const initialWeight = weightHistory[0]?.weight || profile.weightKg;
+  const diff = latestWeight - initialWeight;
+  const isGain = diff > 0;
+  const diffText = diff === 0 ? "0.0 kg" : `${isGain ? "+" : ""}${diff.toFixed(1)} kg`;
 
   return (
     <PhoneShell>
@@ -130,16 +134,25 @@ function Dashboard() {
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Weight trend</p>
             <p className="font-display text-2xl font-bold">{latestWeight} kg</p>
           </div>
-          <span className="rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">-1.1 kg</span>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${isGain ? 'bg-destructive/15 text-destructive' : 'bg-success/15 text-success'}`}>
+            {diffText}
+          </span>
         </div>
         <div className="h-28">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={weightHistory} margin={{ left: -20, right: 6, top: 6, bottom: 0 }}>
-              <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
-              <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12 }} />
-              <Line type="monotone" dataKey="weight" stroke="var(--color-primary)" strokeWidth={3} dot={{ r: 3, fill: "var(--color-primary)" }} />
-            </LineChart>
-          </ResponsiveContainer>
+          {weightHistory.length <= 1 ? (
+            <div className="flex h-full flex-col items-center justify-center text-center px-4 border border-dashed border-border/60 rounded-2xl bg-card/40">
+              <p className="text-xs font-semibold text-muted-foreground">Chart building in progress...</p>
+              <p className="text-[10px] text-muted-foreground/70 mt-1">Log your weight over multiple days to generate your trend graph.</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={weightHistory} margin={{ left: -20, right: 6, top: 6, bottom: 0 }}>
+                <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
+                <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12 }} />
+                <Line type="monotone" dataKey="weight" stroke="var(--color-primary)" strokeWidth={3} dot={{ r: 3, fill: "var(--color-primary)" }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -153,14 +166,21 @@ function Dashboard() {
           <Link to="/progress" className="text-xs font-semibold text-primary">View report</Link>
         </div>
         <div className="h-32">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={calorieHistory} margin={{ left: -20, right: 6, top: 6, bottom: 0 }}>
-              <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
-              <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12 }} />
-              <Bar dataKey="eaten" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="burned" fill="var(--color-gold)" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {calorieHistory.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center text-center px-4 border border-dashed border-border/60 rounded-2xl bg-card/40">
+              <p className="text-xs font-semibold text-muted-foreground">Chart building in progress...</p>
+              <p className="text-[10px] text-muted-foreground/70 mt-1">Log your meals and workouts to generate your calorie graph.</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={calorieHistory} margin={{ left: -20, right: 6, top: 6, bottom: 0 }}>
+                <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
+                <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12 }} />
+                <Bar dataKey="eaten" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="burned" fill="var(--color-gold)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
     </PhoneShell>

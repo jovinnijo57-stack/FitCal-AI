@@ -36,12 +36,14 @@ function Progress() {
   const activeCalorieData = tab === "weekly" ? calorieHistory : MONTHLY_CALORIE;
 
   const avgKcal = tab === "weekly" 
-    ? Math.round(calorieHistory.reduce((a, c) => a + c.eaten, 0) / calorieHistory.length)
+    ? (calorieHistory.length > 0 ? Math.round(calorieHistory.reduce((a, c) => a + c.eaten, 0) / calorieHistory.length) : totals.eaten.kcal)
     : Math.round(MONTHLY_CALORIE.reduce((a, c) => a + c.eaten, 0) / MONTHLY_CALORIE.length);
 
-  const lostWeight = tab === "weekly"
-    ? ((weightHistory[0]?.weight || 78.2) - (weightHistory.at(-1)?.weight || 77.1)).toFixed(1)
-    : ((MONTHLY_WEIGHT[0]?.weight || 78.5) - (MONTHLY_WEIGHT.at(-1)?.weight || 77.1)).toFixed(1);
+  const initialWeight = tab === "weekly" ? (weightHistory[0]?.weight || totals.eaten.kcal ? 77 : 77) : MONTHLY_WEIGHT[0].weight;
+  const currentWeight = tab === "weekly" ? (weightHistory.at(-1)?.weight || totals.eaten.kcal ? 77 : 77) : MONTHLY_WEIGHT.at(-1)!.weight;
+  const diff = currentWeight - initialWeight;
+  const isGain = diff > 0;
+  const diffText = diff === 0 ? "0.0 kg" : `${isGain ? "+" : ""}${diff.toFixed(1)} kg`;
 
   return (
     <PhoneShell>
@@ -73,45 +75,59 @@ function Progress() {
         {[
           { l: "Avg kcal", v: `${avgKcal}` },
           { l: tab === "weekly" ? "Streak" : "Active Days", v: tab === "weekly" ? "12 days" : "26 days" },
-          { l: "Lost", v: `-${lostWeight} kg` },
+          { l: isGain ? "Gained" : "Lost", v: diffText, color: isGain ? "text-destructive" : "text-success" },
         ].map((s) => (
           <div key={s.l} className="rounded-2xl border border-border bg-gradient-card p-3 shadow-card">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{s.l}</p>
-            <p className="mt-1 font-display text-xl font-bold">{s.v}</p>
+            <p className={`mt-1 font-display text-xl font-bold ${s.color || ''}`}>{s.v}</p>
           </div>
         ))}
       </div>
 
       <div className="pb-20 space-y-4 animate-in fade-in duration-500">
         <Card title="Weight trend" sub={tab === "weekly" ? "Last 7 days" : "Last 4 weeks"}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={activeWeightData} margin={{ left: -10, right: 8, top: 8, bottom: 0 }}>
-              <defs>
-                <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
-              <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]} axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
-              <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12 }} />
-              <Area type="monotone" dataKey="weight" stroke="var(--color-primary)" strokeWidth={3} fill="url(#g1)" />
-            </AreaChart>
-          </ResponsiveContainer>
+          {activeWeightData.length <= 1 ? (
+            <div className="flex h-full flex-col items-center justify-center text-center px-4 border border-dashed border-border/60 rounded-2xl bg-card/40">
+              <p className="text-xs font-semibold text-muted-foreground">Chart building in progress...</p>
+              <p className="text-[10px] text-muted-foreground/70 mt-1">Log your weight over multiple days to generate your trend graph.</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={activeWeightData} margin={{ left: -10, right: 8, top: 8, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
+                <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]} axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
+                <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12 }} />
+                <Area type="monotone" dataKey="weight" stroke="var(--color-primary)" strokeWidth={3} fill="url(#g1)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </Card>
 
         <Card title="Calories in vs out" sub={tab === "weekly" ? "Weekly average" : "Monthly average"}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={activeCalorieData} margin={{ left: -10, right: 8, top: 8, bottom: 0 }}>
-              <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
-              <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
-              <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12 }} />
-              <Bar dataKey="eaten" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="burned" fill="var(--color-gold)" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {activeCalorieData.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center text-center px-4 border border-dashed border-border/60 rounded-2xl bg-card/40">
+              <p className="text-xs font-semibold text-muted-foreground">Chart building in progress...</p>
+              <p className="text-[10px] text-muted-foreground/70 mt-1">Log your meals and workouts to generate your calorie graph.</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={activeCalorieData} margin={{ left: -10, right: 8, top: 8, bottom: 0 }}>
+                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
+                <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
+                <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12 }} />
+                <Bar dataKey="eaten" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="burned" fill="var(--color-gold)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </Card>
       </div>
     </PhoneShell>
