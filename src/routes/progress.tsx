@@ -40,6 +40,10 @@ function Progress() {
   const diff = currentWeight - initialWeight;
   const isGain = diff > 0;
   const diffText = diff === 0 ? "0.0 kg" : `${isGain ? "+" : ""}${diff.toFixed(1)} kg`;
+  const currentUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("currentUser") || "{}") : {};
+  const userGoal = currentUser.profile?.goal || totals.state?.profile?.goal || "lose";
+  const isBad = userGoal === "gain" ? diff < 0 : diff > 0;
+  const diffColor = diff === 0 ? "text-foreground" : (isBad ? "text-destructive" : "text-success");
 
   return (
     <PhoneShell>
@@ -71,7 +75,7 @@ function Progress() {
         {[
           { l: "Avg kcal", v: `${avgKcal}` },
           { l: "Active Days", v: activeDaysText },
-          { l: "Avg Weight", v: diffText, color: isGain ? "text-destructive" : "text-success" },
+          { l: "Avg Weight", v: diffText, color: diffColor },
         ].map((s) => (
           <div key={s.l} className="rounded-2xl border border-border bg-gradient-card p-3 shadow-card">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{s.l}</p>

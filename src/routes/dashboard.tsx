@@ -26,6 +26,8 @@ function Dashboard() {
   const diff = latestWeight - initialWeight;
   const isGain = diff > 0;
   const diffText = diff === 0 ? "0.0 kg" : `${isGain ? "+" : ""}${diff.toFixed(1)} kg`;
+  const isBad = profile.goal === "gain" ? diff < 0 : diff > 0;
+  const badgeColor = diff === 0 ? "bg-muted text-foreground" : (isBad ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success");
 
   return (
     <PhoneShell>
@@ -133,7 +135,7 @@ function Dashboard() {
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Weight trend</p>
             <p className="font-display text-2xl font-bold">{latestWeight} kg</p>
           </div>
-          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${isGain ? 'bg-destructive/15 text-destructive' : 'bg-success/15 text-success'}`}>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${badgeColor}`}>
             {diffText}
           </span>
         </div>

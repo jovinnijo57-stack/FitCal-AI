@@ -172,7 +172,7 @@ function Signup() {
             <div className="h-16 w-16 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mb-4 animate-bounce">
               <Check className="h-8 w-8" strokeWidth={3} />
             </div>
-            <h3 className="font-display text-2xl font-bold bg-gradient-to-r from-gold to-primary-foreground bg-clip-text text-transparent">Account Created!</h3>
+            <h3 className="font-display text-2xl font-bold text-foreground">Account Created!</h3>
             <p className="text-sm text-muted-foreground mt-2">Your premium PulsePeak account is ready. Redirecting you to login...</p>
           </div>
         </div>

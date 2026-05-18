@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { motion } from "framer-motion";
 import { Droplet, Plus, RotateCcw, Calendar, CheckCircle2, Sparkles, X } from "lucide-react";
 import { useState, useEffect } from "react";
+import { clsx } from "clsx";
 
 export const Route = createFileRoute("/water")({
   head: () => ({ meta: [{ title: "Water Tracker — PulsePeak" }] }),
@@ -130,9 +131,14 @@ function WaterTracker() {
           </div>
         </div>
 
-        <div className="mt-6 flex items-center gap-2 rounded-2xl bg-cyan-500/10 px-4 py-2 border border-cyan-500/20 text-cyan-500 text-xs font-semibold">
+        <div className={clsx(
+          "mt-6 flex items-center gap-2 rounded-2xl px-4 py-2 border text-xs font-semibold transition-all",
+          pct >= 100 
+            ? "bg-success/15 border-success/30 text-success" 
+            : "bg-destructive/15 border-destructive/30 text-destructive"
+        )}>
           <Sparkles className="h-4 w-4" />
-          <span>{pct >= 100 ? "Amazing! Daily hydration goal reached! 🎉" : `${(profile.waterGoalMl - waterMl)}ml left to reach your daily goal.`}</span>
+          <span>{pct >= 100 ? "Amazing! Daily hydration goal reached! 🎉" : `Completed: ${Math.round(pct)}% (${profile.waterGoalMl - waterMl}ml left)`}</span>
         </div>
       </div>
 
