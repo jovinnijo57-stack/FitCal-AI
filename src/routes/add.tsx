@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { PhoneShell, ScreenHeader } from "@/components/PhoneShell";
 import { FOODS, type Food } from "@/lib/mock-data";
 import { useStore, type MealType } from "@/lib/store";
-import { Search, ScanBarcode, Plus, BadgeCheck, X } from "lucide-react";
+import { Search, Mic, Filter, Plus, BadgeCheck, X } from "lucide-react";
 
 export const Route = createFileRoute("/add")({
   head: () => ({ meta: [{ title: "Add Food — PulsePeak" }] }),
@@ -16,19 +16,51 @@ function AddFood() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Food | null>(null);
   const [mealType, setMealType] = useState<MealType>(meal);
+  const [filterCategory, setFilterCategory] = useState("All");
+  const [showFilter, setShowFilter] = useState(false);
+  const [isListening, setIsListening] = useState(false);
 
-  const results = useMemo(
-    () => FOODS.filter((f) => (f.name + " " + (f.brand ?? "")).toLowerCase().includes(q.toLowerCase())),
-    [q],
-  );
+  const results = useMemo(() => {
+    return FOODS.filter((f) => {
+      const matchesQ = (f.name + " " + (f.brand ?? "")).toLowerCase().includes(q.toLowerCase());
+      if (!matchesQ) return false;
+      if (filterCategory === "High Protein") return f.protein >= 20;
+      if (filterCategory === "Low Calorie") return f.kcal <= 150;
+      if (filterCategory === "Recipes") return f.brand === "Recipe";
+      return true;
+    });
+  }, [q, filterCategory]);
+
+  const handleVoiceSearch = () => {
+    if (typeof window !== "undefined" && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in (window as any))) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => setIsListening(true);
+      recognition.onresult = (e: any) => {
+        const transcript = e.results[0][0].transcript;
+        setQ(transcript);
+        setIsListening(false);
+      };
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
+
+      recognition.start();
+    } else {
+      alert("Voice search is not supported in this browser.");
+    }
+  };
 
   return (
     <PhoneShell>
       <ScreenHeader title="Add food" subtitle={`To ${mealType}`} />
 
       <div className="px-5">
-        <div className="flex gap-2">
-          <label className="flex flex-1 items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3">
+        <div className="flex gap-2 items-center">
+          <label className="flex flex-1 items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
               autoFocus
@@ -37,10 +69,39 @@ function AddFood() {
               placeholder="Search foods, brands..."
               className="w-full bg-transparent text-sm outline-none"
             />
+            <button 
+              type="button" 
+              onClick={handleVoiceSearch}
+              className={`p-1 rounded-full transition ${isListening ? "bg-destructive/20 text-destructive animate-pulse" : "text-muted-foreground hover:text-foreground"}`}
+              title="Voice Search"
+            >
+              <Mic className="h-4 w-4" />
+            </button>
           </label>
-          <Link to="/scan" className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-hero text-primary-foreground shadow-glow">
-            <ScanBarcode className="h-5 w-5" />
-          </Link>
+
+          <div className="relative">
+            <button 
+              onClick={() => setShowFilter(!showFilter)}
+              className={`flex h-12 items-center gap-1.5 rounded-2xl px-3.5 text-xs font-semibold shadow-sm transition ${filterCategory !== "All" ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}
+              title="Filter Foods"
+            >
+              <Filter className="h-4 w-4" />
+              <span className="hidden sm:inline">{filterCategory}</span>
+            </button>
+            {showFilter && (
+              <div className="absolute right-0 top-14 z-30 w-40 rounded-2xl border border-border bg-card p-2 shadow-glow animate-in fade-in zoom-in-95">
+                {["All", "High Protein", "Low Calorie", "Recipes"].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => { setFilterCategory(cat); setShowFilter(false); }}
+                    className={`w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition ${filterCategory === cat ? "bg-primary/15 text-primary font-bold" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-4 flex gap-2 overflow-x-auto pb-1">

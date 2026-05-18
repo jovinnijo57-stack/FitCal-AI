@@ -27,6 +27,21 @@ export const FOODS: Food[] = [
   { id: "13", name: "Spinach", serving: "100g", kcal: 23, protein: 3, carbs: 4, fats: 0.4 },
   { id: "14", name: "Olive Oil", serving: "1 tbsp", kcal: 119, protein: 0, carbs: 0, fats: 13.5 },
   { id: "15", name: "Apple", serving: "1 medium", kcal: 95, protein: 0.5, carbs: 25, fats: 0.3 },
+  { id: "16", name: "Grilled Chicken Salad", brand: "Recipe", serving: "1 bowl", kcal: 350, protein: 35, carbs: 12, fats: 14, verified: true },
+  { id: "17", name: "Berry Protein Smoothie", brand: "Recipe", serving: "1 glass", kcal: 280, protein: 25, carbs: 32, fats: 4, verified: true },
+  { id: "18", name: "Quinoa Buddha Bowl", brand: "Recipe", serving: "1 bowl", kcal: 420, protein: 16, carbs: 58, fats: 14, verified: true },
+  { id: "19", name: "Salmon Avocado Toast", brand: "Recipe", serving: "2 slices", kcal: 380, protein: 22, carbs: 28, fats: 18, verified: true },
+  { id: "20", name: "Lentil Soup", brand: "Recipe", serving: "1 bowl", kcal: 220, protein: 14, carbs: 38, fats: 2 },
+  { id: "21", name: "Tofu Stir Fry", brand: "Recipe", serving: "1 plate", kcal: 310, protein: 19, carbs: 22, fats: 16, verified: true },
+  { id: "22", name: "Chia Seed Pudding", brand: "Recipe", serving: "1 cup", kcal: 190, protein: 6, carbs: 20, fats: 9 },
+  { id: "23", name: "Cottage Cheese & Berries", serving: "1 cup", kcal: 180, protein: 24, carbs: 14, fats: 3, verified: true },
+  { id: "24", name: "Sweet Potato Fries", serving: "100g", kcal: 160, protein: 2, carbs: 34, fats: 4 },
+  { id: "25", name: "Veggie Omelette", brand: "Recipe", serving: "3 eggs", kcal: 260, protein: 20, carbs: 4, fats: 18, verified: true },
+  { id: "26", name: "Almond Butter Rice Cakes", serving: "2 cakes", kcal: 190, protein: 5, carbs: 22, fats: 9 },
+  { id: "27", name: "Turkey & Cheese Wrap", brand: "Recipe", serving: "1 wrap", kcal: 320, protein: 28, carbs: 26, fats: 11, verified: true },
+  { id: "28", name: "Peanut Butter Banana Toast", brand: "Recipe", serving: "1 slice", kcal: 250, protein: 8, carbs: 34, fats: 10 },
+  { id: "29", name: "Matcha Latte", serving: "1 cup", kcal: 110, protein: 4, carbs: 12, fats: 3 },
+  { id: "30", name: "Dark Chocolate", serving: "25g", kcal: 150, protein: 2, carbs: 13, fats: 11, verified: true },
 ];
 
 export type Exercise = { id: string; name: string; kcalPerMin: number; icon: string };

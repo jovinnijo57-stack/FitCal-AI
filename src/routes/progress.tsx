@@ -30,7 +30,9 @@ function Progress() {
   // Active Days count
   // "according when the user marks calorie,workouts,water taken etc active days are calculated"
   const activeDaysCount = activeCalorieData.filter(d => d.eaten > 0 || d.burned > 0).length;
-  const totalDays = tab === "weekly" ? 7 : 30;
+  const now = new Date();
+  const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const totalDays = tab === "weekly" ? 7 : daysInCurrentMonth;
   const activeDaysText = `${activeDaysCount} / ${totalDays} days`;
 
   // Average weight diff
