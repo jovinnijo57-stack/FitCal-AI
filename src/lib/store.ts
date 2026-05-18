@@ -9,6 +9,7 @@ export type MealEntry = { id: string; meal: MealType; food: Food; servings: numb
 export type ExerciseEntry = { id: string; exercise: Exercise; minutes: number; kcal: number };
 
 export type Profile = {
+  email?: string;
   name: string;
   age: number;
   gender: "male" | "female";
@@ -33,6 +34,7 @@ type State = {
 
 const defaultState: State = {
   profile: {
+    email: "",
     name: "Alex",
     age: 28,
     gender: "male",
@@ -94,13 +96,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
 
         let loaded = { ...defaultState };
-        const userId = await getUserId();
+        const { data: authData } = await supabase.auth.getUser();
+        const userId = authData?.user?.id || null;
         if (userId) {
           // Fetch Profile
           const { data: profileData } = await supabase.from("profiles").select("*").eq("id", userId).single();
           if (profileData) {
             loaded.profile = {
               ...loaded.profile,
+              email: profileData.email || authData?.user?.email || "",
               name: profileData.name || loaded.profile.name,
               goal: profileData.goal || loaded.profile.goal,
               calorieGoal: profileData.calorie_goal || loaded.profile.calorieGoal,
@@ -110,6 +114,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               fatsGoal: profileData.fats_goal || loaded.profile.fatsGoal,
               weightKg: profileData.weight_kg || loaded.profile.weightKg,
             };
+          } else {
+            loaded.profile.email = authData?.user?.email || "";
           }
 
           // Fetch Meals for today

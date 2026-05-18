@@ -180,30 +180,21 @@ export const EXERCISES: Exercise[] = [
 
 export const WEIGHT_HISTORY: { day: string; weight: number }[] = [];
 
-export function getWeightHistory() {
-  if (typeof window === "undefined") return [];
+export function getWeightHistory(userEmail?: string) {
+  if (typeof window === "undefined" || !userEmail) return [];
   try {
-    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-    const userKey = currentUser.email ? `pulsepeak_weight_${currentUser.email}` : "pulsepeak_weight_history";
+    const userKey = `pulsepeak_weight_${userEmail}`;
     const raw = localStorage.getItem(userKey);
     if (raw) return JSON.parse(raw);
-    // If no history exists, initialize with their current profile weight
-    if (currentUser.profile?.weightKg) {
-      const todayStr = new Date().toLocaleDateString("en-US", { weekday: "short" });
-      const initial = [{ day: todayStr, weight: currentUser.profile.weightKg }];
-      localStorage.setItem(userKey, JSON.stringify(initial));
-      return initial;
-    }
   } catch {}
   return [];
 }
 
-export function saveWeightHistory(newWeight: number) {
-  if (typeof window === "undefined") return;
+export function saveWeightHistory(newWeight: number, userEmail?: string) {
+  if (typeof window === "undefined" || !userEmail) return;
   try {
-    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-    const userKey = currentUser.email ? `pulsepeak_weight_${currentUser.email}` : "pulsepeak_weight_history";
-    let current = getWeightHistory();
+    const userKey = `pulsepeak_weight_${userEmail}`;
+    let current = getWeightHistory(userEmail);
     const todayStr = new Date().toLocaleDateString("en-US", { weekday: "short" });
     if (current.length === 0) {
       current = [{ day: todayStr, weight: newWeight }];
@@ -218,11 +209,10 @@ export function saveWeightHistory(newWeight: number) {
 
 export const CALORIE_HISTORY: { day: string; eaten: number; burned: number }[] = [];
 
-export function getCalorieHistory(currentEaten?: number, currentBurned?: number) {
-  if (typeof window === "undefined") return [];
+export function getCalorieHistory(currentEaten?: number, currentBurned?: number, userEmail?: string) {
+  if (typeof window === "undefined" || !userEmail) return [];
   try {
-    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-    const userKey = currentUser.email ? `pulsepeak_calorie_${currentUser.email}` : "pulsepeak_calorie_history";
+    const userKey = `pulsepeak_calorie_${userEmail}`;
     const raw = localStorage.getItem(userKey);
     let history = raw ? JSON.parse(raw) : [];
     const todayStr = new Date().toLocaleDateString("en-US", { weekday: "short" });

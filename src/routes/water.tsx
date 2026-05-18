@@ -28,8 +28,7 @@ function WaterTracker() {
   // Load history from localStorage
   useEffect(() => {
     try {
-      const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-      const userKey = currentUser.email ? `pulsepeak_water_${currentUser.email}` : "pulsepeak_water_history";
+      const userKey = profile.email ? `pulsepeak_water_${profile.email}` : "pulsepeak_water_history";
       const raw = localStorage.getItem(userKey);
       if (raw) {
         setHistory(JSON.parse(raw));
@@ -37,14 +36,13 @@ function WaterTracker() {
         localStorage.setItem(userKey, JSON.stringify(INITIAL_HISTORY));
       }
     } catch {}
-  }, []);
+  }, [profile.email]);
 
   // Sync today's water to history
   const handleAdd = (amount: number) => {
     addWater(amount);
     try {
-      const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-      const userKey = currentUser.email ? `pulsepeak_water_${currentUser.email}` : "pulsepeak_water_history";
+      const userKey = profile.email ? `pulsepeak_water_${profile.email}` : "pulsepeak_water_history";
       const newTotal = waterMl + amount;
       let currentHistory = [...history];
       const existingIdx = currentHistory.findIndex(h => h.date === todayStr);
@@ -61,8 +59,7 @@ function WaterTracker() {
   const handleReset = () => {
     resetWater();
     try {
-      const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-      const userKey = currentUser.email ? `pulsepeak_water_${currentUser.email}` : "pulsepeak_water_history";
+      const userKey = profile.email ? `pulsepeak_water_${profile.email}` : "pulsepeak_water_history";
       let currentHistory = [...history];
       const existingIdx = currentHistory.findIndex(h => h.date === todayStr);
       if (existingIdx >= 0) {

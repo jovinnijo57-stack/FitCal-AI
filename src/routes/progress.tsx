@@ -15,8 +15,9 @@ function Progress() {
   const [tab, setTab] = useState<"weekly" | "monthly">("weekly");
   const totals = useTotals();
 
-  const weightHistory = getWeightHistory();
-  const calorieHistory = getCalorieHistory(totals.eaten.kcal, totals.burned);
+  const { profile } = totals.state;
+  const weightHistory = getWeightHistory(profile.email);
+  const calorieHistory = getCalorieHistory(totals.eaten.kcal, totals.burned, profile.email);
 
   // Weekly: last 7 days. Monthly: last 30 days.
   const activeWeightData = tab === "weekly" ? weightHistory.slice(-7) : weightHistory.slice(-30);
@@ -42,8 +43,7 @@ function Progress() {
   const diff = currentWeight - initialWeight;
   const isGain = diff > 0;
   const diffText = diff === 0 ? "0.0 kg" : `${isGain ? "+" : ""}${diff.toFixed(1)} kg`;
-  const currentUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("currentUser") || "{}") : {};
-  const userGoal = currentUser.profile?.goal || totals.state?.profile?.goal || "lose";
+  const userGoal = profile.goal || "lose";
   const isBad = userGoal === "gain" ? diff < 0 : diff > 0;
   const diffColor = diff === 0 ? "text-foreground" : (isBad ? "text-destructive" : "text-success");
 

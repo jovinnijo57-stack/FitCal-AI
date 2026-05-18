@@ -16,11 +16,10 @@ function Dashboard() {
   const { state, addWater } = useStore();
   const totals = useTotals();
   const { profile } = state;
-  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-  const userName = currentUser.name || profile.name || "User";
+  const userName = profile.name || "User";
 
-  const weightHistory = getWeightHistory();
-  const calorieHistory = getCalorieHistory(totals.eaten.kcal, totals.burned);
+  const weightHistory = getWeightHistory(profile.email);
+  const calorieHistory = getCalorieHistory(totals.eaten.kcal, totals.burned, profile.email);
   const latestWeight = weightHistory.at(-1)?.weight || profile.weightKg;
   const initialWeight = weightHistory[0]?.weight || profile.weightKg;
   const diff = latestWeight - initialWeight;
