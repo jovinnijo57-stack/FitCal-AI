@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { clsx } from "clsx";
+import { supabase } from "../lib/supabase";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
@@ -48,18 +49,33 @@ function Login() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const user = users.find((u: any) => u.email === "google@gmail.com");
-    if (!user) {
-      setErrors({ google: "Google account not found. Please register first." });
-      return;
-    }
-    localStorage.setItem("currentUser", JSON.stringify(user));
-    if (user.onboardingComplete) {
-      nav({ to: "/dashboard" });
-    } else {
-      nav({ to: "/onboarding" });
+  const handleGoogleLogin = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.warn("Supabase Google OAuth not fully configured, falling back to local simulation:", err);
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      const user = users.find((u: any) => u.email === "google@gmail.com" || u.email === email);
+      if (!user) {
+        setErrors({ google: "Google account not found in local records. Please register first." });
+        return;
+      }
+      localStorage.setItem("currentUser", JSON.stringify(user));
+      if (user.onboardingComplete) {
+        nav({ to: "/dashboard" });
+      } else {
+        nav({ to: "/onboarding" });
+      }
     }
   };
 

@@ -149,17 +149,32 @@ function Signup() {
     }
   };
 
-  const handleGoogleSignup = () => {
-    const googleUser = { name: "Google User", email: formData.email.endsWith("@gmail.com") ? formData.email : "google@gmail.com", phone: "", password: "", referral: "", onboardingComplete: false };
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    if (!users.some((u: any) => u.email === googleUser.email)) {
-      users.push(googleUser);
-      localStorage.setItem("users", JSON.stringify(users));
+  const handleGoogleSignup = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/onboarding`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.warn("Supabase Google OAuth not fully configured, falling back to local simulation:", err);
+      const googleUser = { name: "Google User", email: formData.email.endsWith("@gmail.com") ? formData.email : "google@gmail.com", phone: "", password: "", referral: "", onboardingComplete: false };
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      if (!users.some((u: any) => u.email === googleUser.email)) {
+        users.push(googleUser);
+        localStorage.setItem("users", JSON.stringify(users));
+      }
+      setShowSuccessAnim(true);
+      setTimeout(() => {
+        nav({ to: "/login" });
+      }, 2000);
     }
-    setShowSuccessAnim(true);
-    setTimeout(() => {
-      nav({ to: "/login" });
-    }, 2000);
   };
 
   const [showSuccessAnim, setShowSuccessAnim] = useState(false);
