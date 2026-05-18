@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useStore, type Profile } from "@/lib/store";
 import { calcBMR, calcTDEE, goalAdjust } from "@/lib/mock-data";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Phone } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/onboarding")({ component: Onboarding });
@@ -17,21 +17,66 @@ function Onboarding() {
     diet: "Omnivore", workoutType: "Strength training", sleepHours: 8, waterGoalL: 3, targetWeightKg: 70
   });
 
+  // Phone number modal state for Google login users
+  const [showPhonePopup, setShowPhonePopup] = useState(false);
+  const [countryCode, setCountryCode] = useState("+91");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
+
   useEffect(() => {
     async function checkExistingProfile() {
       try {
         const { data: authData } = await supabase.auth.getUser();
         const userId = authData?.user?.id;
         if (userId) {
-          const { data: profileData } = await supabase.from("profiles").select("calorie_goal").eq("id", userId).single();
+          const { data: profileData } = await supabase.from("profiles").select("calorie_goal, phone").eq("id", userId).single();
           if (profileData && profileData.calorie_goal) {
             nav({ to: "/dashboard" });
+            return;
+          }
+          // Check if they logged in via Google and need phone
+          const isGoogle = authData.user?.app_metadata?.provider === 'google' || authData.user?.app_metadata?.providers?.includes('google');
+          if (isGoogle) {
+            const metaPhone = authData.user?.user_metadata?.phone;
+            if (!metaPhone && (!profileData || !profileData.phone)) {
+              setShowPhonePopup(true);
+            }
           }
         }
       } catch {}
     }
     checkExistingProfile();
   }, [nav]);
+
+  const handleSavePhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (phoneInput.length < 10) {
+      setPhoneError("Please enter a valid 10-digit phone number.");
+      return;
+    }
+    setSavingPhone(true);
+    setPhoneError("");
+    const fullPhone = `${countryCode} ${phoneInput}`;
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user) {
+        await supabase.auth.updateUser({
+          data: { phone: fullPhone }
+        });
+        await supabase.from("profiles").update({
+          phone: fullPhone
+        }).eq("id", authData.user.id);
+        
+        setProfile({ phone: fullPhone });
+      }
+      setShowPhonePopup(false);
+    } catch (err: any) {
+      setPhoneError(err.message || "Failed to save phone number.");
+    } finally {
+      setSavingPhone(false);
+    }
+  };
 
   const totalSteps = 7;
 
