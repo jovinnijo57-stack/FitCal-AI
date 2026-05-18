@@ -33,13 +33,33 @@ function Login() {
       return;
     }
 
-    const hashedPw = await hashPassword(pw);
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const user = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase() && u.password === hashedPw);
+    let userObj = null;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
+      if (!error && data?.user) {
+        const users = JSON.parse(localStorage.getItem("users") || "[]");
+        let existing = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+        if (!existing) {
+          existing = {
+            id: data.user.id, email: data.user.email, name: data.user.user_metadata?.full_name || "User",
+            phone: data.user.user_metadata?.phone || "", onboardingComplete: false
+          };
+          users.push(existing);
+          localStorage.setItem("users", JSON.stringify(users));
+        }
+        userObj = existing;
+      }
+    } catch (err) { console.error("Supabase login fallback:", err); }
 
-    if (user) {
-      localStorage.setItem("currentUser", JSON.stringify(user));
-      if (user.onboardingComplete) {
+    if (!userObj) {
+      const hashedPw = await hashPassword(pw);
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      userObj = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase() && u.password === hashedPw);
+    }
+
+    if (userObj) {
+      localStorage.setItem("currentUser", JSON.stringify(userObj));
+      if (userObj.onboardingComplete) {
         nav({ to: "/dashboard" });
       } else {
         nav({ to: "/onboarding" });

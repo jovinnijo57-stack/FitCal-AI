@@ -116,9 +116,28 @@ function Signup() {
 
     const otpString = otp.join("");
     if (otpString === expectedOtp) {
+      const fullPhone = `${countryCode} ${formData.phone}`;
+      
+      // Register user in Supabase auth.users
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.name,
+              phone: fullPhone,
+              referral: formData.referral,
+            }
+          }
+        });
+        if (error) console.error("Supabase signUp error:", error);
+      } catch (err) {
+        console.error("Supabase signUp exception:", err);
+      }
+
       const hashedPassword = await hashPassword(formData.password);
       const users = JSON.parse(localStorage.getItem("users") || "[]");
-      const fullPhone = `${countryCode} ${formData.phone}`;
       const userToSave = { ...formData, phone: fullPhone, password: hashedPassword, onboardingComplete: false };
       users.push(userToSave);
       localStorage.setItem("users", JSON.stringify(users));
@@ -144,36 +163,8 @@ function Signup() {
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    if (e.key === 'Backspace' && !otp[index] && index > 1) {
       inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleGoogleSignup = async () => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/login`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      console.warn("Supabase Google OAuth not fully configured, falling back to local simulation:", err);
-      const googleUser = { name: "Google User", email: formData.email.endsWith("@gmail.com") ? formData.email : "google@gmail.com", phone: "", password: "", referral: "", onboardingComplete: false };
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      if (!users.some((u: any) => u.email === googleUser.email)) {
-        users.push(googleUser);
-        localStorage.setItem("users", JSON.stringify(users));
-      }
-      setShowSuccessAnim(true);
-      setTimeout(() => {
-        nav({ to: "/login" });
-      }, 2000);
     }
   };
 
@@ -284,16 +275,6 @@ function Signup() {
                 Create account
               </button>
             </form>
-
-            <div className="my-8 flex items-center gap-3 text-xs text-muted-foreground">
-              <div className="h-px flex-1 bg-border" /> OR CONTINUE WITH <div className="h-px flex-1 bg-border" />
-            </div>
-            <button
-              onClick={handleGoogleSignup}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-border bg-card/80 backdrop-blur-md py-4 font-display font-medium shadow-sm transition hover:bg-muted active:scale-[0.98]"
-            >
-              <GoogleIcon /> Google
-            </button>
             
             <p className="mt-10 text-center text-sm text-muted-foreground">
               Already have an account? <Link to="/login" className="font-semibold text-primary hover:text-primary/80 transition-colors">Sign in</Link>

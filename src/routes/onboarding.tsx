@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore, type Profile } from "@/lib/store";
 import { calcBMR, calcTDEE, goalAdjust } from "@/lib/mock-data";
 import { Sparkles } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/onboarding")({ component: Onboarding });
 
@@ -15,6 +16,29 @@ function Onboarding() {
     gender: "male", age: 28, heightCm: 178, weightKg: 77, goal: "lose", activity: 1.55,
     diet: "Omnivore", workoutType: "Strength training", sleepHours: 8, waterGoalL: 3, targetWeightKg: 70
   });
+
+  useEffect(() => {
+    async function checkExistingProfile() {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+        if (currentUser.onboardingComplete) {
+          nav({ to: "/dashboard" });
+          return;
+        }
+        const { data: authData } = await supabase.auth.getUser();
+        const userId = authData?.user?.id || currentUser.id;
+        if (userId) {
+          const { data: profileData } = await supabase.from("profiles").select("calorie_goal").eq("id", userId).single();
+          if (profileData && profileData.calorie_goal) {
+            const updatedUser = { ...currentUser, onboardingComplete: true };
+            localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+            nav({ to: "/dashboard" });
+          }
+        }
+      } catch {}
+    }
+    checkExistingProfile();
+  }, [nav]);
 
   const totalSteps = 7;
 
@@ -99,6 +123,26 @@ Provide a JSON response with exactly this structure:
     const users = JSON.parse(localStorage.getItem("users") || "[]");
     const updatedUsers = users.map((u: any) => u.email === currentUser.email ? updatedUser : u);
     localStorage.setItem("users", JSON.stringify(updatedUsers));
+
+    // Save to Supabase profiles table
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id || currentUser.id;
+      if (userId) {
+        await supabase.from("profiles").upsert({
+          id: userId,
+          email: currentUser.email,
+          name: authData?.user?.user_metadata?.full_name || currentUser.name || "PulsePeak User",
+          goal: data.goal,
+          calorie_goal: calorieGoal,
+          water_goal_ml: data.waterGoalL * 1000,
+          protein_goal: Math.round((calorieGoal * 0.3) / 4),
+          carbs_goal: Math.round((calorieGoal * 0.4) / 4),
+          fats_goal: Math.round((calorieGoal * 0.3) / 9),
+          weight_kg: data.weightKg,
+        });
+      }
+    } catch (err) { console.error("Supabase profile save error:", err); }
 
     setAnalyzing(false);
     nav({ to: "/dashboard" });
