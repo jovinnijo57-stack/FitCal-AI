@@ -10,6 +10,7 @@ export type ExerciseEntry = { id: string; exercise: Exercise; minutes: number; k
 
 export type Profile = {
   email?: string;
+  phone?: string;
   name: string;
   age: number;
   gender: "male" | "female";
@@ -35,6 +36,7 @@ type State = {
 const defaultState: State = {
   profile: {
     email: "",
+    phone: "",
     name: "Alex",
     age: 28,
     gender: "male",
@@ -105,6 +107,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             loaded.profile = {
               ...loaded.profile,
               email: profileData.email || authData?.user?.email || "",
+              phone: profileData.phone || authData?.user?.user_metadata?.phone || "",
               name: profileData.name || loaded.profile.name,
               goal: profileData.goal || loaded.profile.goal,
               calorieGoal: profileData.calorie_goal || loaded.profile.calorieGoal,
@@ -116,6 +119,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             };
           } else {
             loaded.profile.email = authData?.user?.email || "";
+            loaded.profile.phone = authData?.user?.user_metadata?.phone || "";
           }
 
           // Fetch Meals for today
@@ -182,6 +186,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             supabase.from("profiles").upsert({
               id: userId,
               name: updatedProfile.name,
+              phone: updatedProfile.phone,
               goal: updatedProfile.goal,
               calorie_goal: updatedProfile.calorieGoal,
               water_goal_ml: updatedProfile.waterGoalMl,

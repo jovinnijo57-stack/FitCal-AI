@@ -118,6 +118,7 @@ Provide a JSON response with exactly this structure:
           id: userId,
           email: authData.user?.email,
           name: authData.user?.user_metadata?.full_name || "PulsePeak User",
+          phone: authData.user?.user_metadata?.phone || "",
           goal: data.goal,
           calorie_goal: calorieGoal,
           water_goal_ml: data.waterGoalL * 1000,
