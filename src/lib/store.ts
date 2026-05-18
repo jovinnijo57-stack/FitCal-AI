@@ -85,6 +85,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadData() {
       try {
+        // Listen for Supabase OAuth login events
+        supabase.auth.onAuthStateChange((event, session) => {
+          if (event === "SIGNED_IN" && session?.user) {
+            const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+            const updatedUser = {
+              ...currentUser,
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.full_name || currentUser.name || "Google User",
+              onboardingComplete: currentUser.onboardingComplete ?? false,
+            };
+            localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+            const users = JSON.parse(localStorage.getItem("users") || "[]");
+            if (!users.some((u: any) => u.email === session.user.email)) {
+              users.push(updatedUser);
+              localStorage.setItem("users", JSON.stringify(users));
+            }
+          } else if (event === "SIGNED_OUT") {
+            localStorage.removeItem("currentUser");
+          }
+        });
+
         const currentUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("currentUser") || "{}") : {};
         const userKey = currentUser.email ? `pulsepeak_state_${currentUser.email}` : KEY;
         const raw = typeof window !== "undefined" ? localStorage.getItem(userKey) : null;
