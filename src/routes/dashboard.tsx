@@ -127,7 +127,7 @@ function Dashboard() {
         </Link>
       </div>
 
-      {/* Meal Planner + AI Gym Workout tiles */}
+      {/* Meal Planner + Ai Gym Exercises tiles */}
       <div className="mx-5 mt-3 grid grid-cols-2 gap-3">
         <Link to="/recipes" className="block rounded-3xl border border-border bg-gradient-card p-4 shadow-card hover:border-primary/50 transition relative group">
           <div className="flex items-center justify-between">
@@ -143,8 +143,8 @@ function Dashboard() {
             <Dumbbell className="h-5 w-5 text-amber-500" />
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary transition">Gym →</span>
           </div>
-          <p className="mt-3 font-display text-lg font-bold leading-tight">AI Gym Workout</p>
-          <span className="mt-1 block text-xs text-muted-foreground">AI plans & logs</span>
+          <p className="mt-3 font-display text-lg font-bold leading-tight">Ai Gym Exercises</p>
+          <span className="mt-1 block text-xs text-muted-foreground">Browse exercises & logs</span>
         </Link>
       </div>
 
