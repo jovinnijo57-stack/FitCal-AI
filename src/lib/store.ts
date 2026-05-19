@@ -88,6 +88,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function loadData() {
+      // Immediately reset state to defaultState (preserving theme) to prevent previous user data from showing
+      setState(prev => ({ ...defaultState, theme: prev.theme }));
+
       try {
         let loaded = { ...defaultState };
         const { data: authData } = await supabase.auth.getUser();
