@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Bell, Droplet, Flame, TrendingDown, Activity, Sparkles } from "lucide-react";
+import { Bell, Droplet, Flame, TrendingDown, Activity, Sparkles, Utensils, Dumbbell } from "lucide-react";
 import { PhoneShell, ScreenHeader } from "@/components/PhoneShell";
 import { ProgressRing, MacroBar } from "@/components/ProgressRing";
 import { useStore, useTotals } from "@/lib/store";
@@ -124,6 +124,27 @@ function Dashboard() {
           <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold">
             Get suggestions →
           </span>
+        </Link>
+      </div>
+
+      {/* Meal Planner + AI Gym Workout tiles */}
+      <div className="mx-5 mt-3 grid grid-cols-2 gap-3">
+        <Link to="/recipes" className="block rounded-3xl border border-border bg-gradient-card p-4 shadow-card hover:border-primary/50 transition relative group">
+          <div className="flex items-center justify-between">
+            <Utensils className="h-5 w-5 text-emerald-500" />
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary transition">Planner →</span>
+          </div>
+          <p className="mt-3 font-display text-lg font-bold leading-tight">Meal Planner</p>
+          <span className="mt-1 block text-xs text-muted-foreground">Recipes & weekly plan</span>
+        </Link>
+
+        <Link to="/exercise" className="block rounded-3xl border border-border bg-gradient-card p-4 shadow-card hover:border-primary/50 transition relative group">
+          <div className="flex items-center justify-between">
+            <Dumbbell className="h-5 w-5 text-amber-500" />
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary transition">Gym →</span>
+          </div>
+          <p className="mt-3 font-display text-lg font-bold leading-tight">AI Gym Workout</p>
+          <span className="mt-1 block text-xs text-muted-foreground">AI plans & logs</span>
         </Link>
       </div>
 
