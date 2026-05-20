@@ -74,6 +74,10 @@ function RecipesPage() {
   const [analyzingRecipeId, setAnalyzingRecipeId] = useState<string | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
 
+  // Marquee controls
+  const [isMarqueePaused, setIsMarqueePaused] = useState(false);
+  const [showNameOnlyId, setShowNameOnlyId] = useState<string | null>(null);
+
   // Form state for creating custom recipe
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("Breakfast");
@@ -360,10 +364,12 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
         }
       `}} />
 
-      <ScreenHeader 
-        title={activeTab === "corner" ? "Chef's Corner" : "Meal Planner"} 
-        subtitle={activeTab === "corner" ? "Plan delicious, macro-balanced meals" : "Weekly Schedule & Plans"} 
-      />
+      {activeTab === "planner" && (
+        <ScreenHeader 
+          title="Meal Planner" 
+          subtitle="Weekly Schedule & Plans" 
+        />
+      )}
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-28">
@@ -372,12 +378,12 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
         {activeTab === "corner" && (
           <div className="space-y-4">
             
-            {/* Pizza Banner at the top above the search bar */}
-            <div className="rounded-3xl overflow-hidden mb-4 border border-border/70 bg-card shadow-sm">
+            {/* Pizza Banner at the top above the search bar - Square layout */}
+            <div className="aspect-square w-full rounded-3xl overflow-hidden mb-4 border border-border/70 bg-card shadow-sm">
               <img 
                 src="/chef_corner_banner.jpg" 
                 alt="Chef's Corner Banner" 
-                className="w-full h-auto object-cover" 
+                className="w-full h-full object-cover" 
               />
             </div>
 
@@ -560,42 +566,121 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   ))}
                 </div>
 
-                {/* Trending Recipes: Swipeable horizontal showcase of recipe images. Hovering or clicking displays the name. */}
-                <div className="space-y-2 py-3 border-y border-border/60 my-2">
-                  <div className="flex items-center justify-between px-1">
-                    <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                      Trending Recipes
-                    </h3>
-                  </div>
-                  <div className="relative w-full overflow-hidden rounded-2xl bg-muted/40 p-2">
-                    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                      {recipes.slice(0, 6).map((recipe) => (
-                        <div 
-                          key={recipe.id}
-                          onClick={() => {
-                            setSelectedRecipe(recipe);
-                            setAiAnalysis(STATIC_AI_ANALYSIS[recipe.id] || null);
-                          }}
-                          className="relative w-28 h-20 rounded-xl overflow-hidden cursor-pointer group shadow-sm flex-shrink-0 border border-border"
-                        >
-                          <img 
-                            src={recipe.image} 
-                            alt={recipe.title} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center p-1.5 transition-opacity text-center">
-                            <span className="text-[9px] text-white font-bold whitespace-normal leading-tight">
-                              {recipe.title}
-                            </span>
-                          </div>
-                          <div className="absolute bottom-0 inset-x-0 bg-black/65 py-1 text-center group-hover:hidden transition-all">
-                            <p className="text-[8px] text-white font-bold truncate px-1">{recipe.title}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                 {/* Trending Recipes: Auto-scrolling marquee of recipe images. Hovering or clicking pauses and displays the name only. */}
+                 <div className="space-y-2 py-3 border-y border-border/60 my-2 overflow-hidden">
+                   <div className="flex items-center justify-between px-1">
+                     <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                       Trending Recipes
+                     </h3>
+                     {isMarqueePaused && (
+                       <button 
+                         onClick={() => {
+                           setIsMarqueePaused(false);
+                           setShowNameOnlyId(null);
+                         }}
+                         className="text-[9px] font-extrabold text-[#007000] hover:underline"
+                       >
+                         Resume Scroll
+                       </button>
+                     )}
+                   </div>
+                   <div 
+                     className="relative w-full overflow-hidden rounded-2xl bg-muted/40 p-2 cursor-pointer"
+                     onClick={() => {
+                       setIsMarqueePaused(false);
+                       setShowNameOnlyId(null);
+                     }}
+                   >
+                     <div 
+                       className={`animate-marquee gap-3 flex ${isMarqueePaused ? "[animation-play-state:paused]" : "hover:[animation-play-state:paused]"}`}
+                     >
+                       {/* Set 1 */}
+                       {recipes.slice(0, 6).map((recipe) => {
+                         const isNameOnly = showNameOnlyId === recipe.id;
+                         return (
+                           <div 
+                             key={recipe.id}
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setIsMarqueePaused(true);
+                               setShowNameOnlyId(isNameOnly ? null : recipe.id);
+                             }}
+                             className="relative w-28 h-20 rounded-xl overflow-hidden cursor-pointer group shadow-sm flex-shrink-0 border border-border"
+                           >
+                             {!isNameOnly ? (
+                               <>
+                                 <img 
+                                   src={recipe.image} 
+                                   alt={recipe.title} 
+                                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                 />
+                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center p-1.5 transition-opacity text-center">
+                                   <span className="text-[9px] text-white font-bold whitespace-normal leading-tight">
+                                     {recipe.title}
+                                   </span>
+                                 </div>
+                                 <div className="absolute bottom-0 inset-x-0 bg-black/65 py-1 text-center group-hover:hidden transition-all">
+                                   <p className="text-[8px] text-white font-bold truncate px-1">{recipe.title}</p>
+                                 </div>
+                               </>
+                             ) : (
+                               <div className="w-full h-full bg-[#007000] flex flex-col items-center justify-center p-2 text-center transition-all duration-300">
+                                 <span className="text-[9px] text-white font-black whitespace-normal leading-tight font-display">
+                                   {recipe.title}
+                                 </span>
+                                 <span className="text-[7px] text-white/80 mt-1 uppercase font-bold tracking-wider">
+                                   {recipe.category}
+                                 </span>
+                               </div>
+                             )}
+                           </div>
+                         );
+                       })}
+                       {/* Set 2 (Duplicates) */}
+                       {recipes.slice(0, 6).map((recipe) => {
+                         const isNameOnly = showNameOnlyId === `${recipe.id}-dup`;
+                         return (
+                           <div 
+                             key={`${recipe.id}-dup`}
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setIsMarqueePaused(true);
+                               setShowNameOnlyId(isNameOnly ? null : `${recipe.id}-dup`);
+                             }}
+                             className="relative w-28 h-20 rounded-xl overflow-hidden cursor-pointer group shadow-sm flex-shrink-0 border border-border"
+                           >
+                             {!isNameOnly ? (
+                               <>
+                                 <img 
+                                   src={recipe.image} 
+                                   alt={recipe.title} 
+                                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                 />
+                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center p-1.5 transition-opacity text-center">
+                                   <span className="text-[9px] text-white font-bold whitespace-normal leading-tight">
+                                     {recipe.title}
+                                   </span>
+                                 </div>
+                                 <div className="absolute bottom-0 inset-x-0 bg-black/65 py-1 text-center group-hover:hidden transition-all">
+                                   <p className="text-[8px] text-white font-bold truncate px-1">{recipe.title}</p>
+                                 </div>
+                               </>
+                             ) : (
+                               <div className="w-full h-full bg-[#007000] flex flex-col items-center justify-center p-2 text-center transition-all duration-300">
+                                 <span className="text-[9px] text-white font-black whitespace-normal leading-tight font-display">
+                                   {recipe.title}
+                                 </span>
+                                 <span className="text-[7px] text-white/80 mt-1 uppercase font-bold tracking-wider">
+                                   {recipe.category}
+                                 </span>
+                               </div>
+                             )}
+                           </div>
+                         );
+                       })}
+                     </div>
+                   </div>
+                 </div>
 
                 {/* Remaining recipes in the grid */}
                 {filteredRecipes.length > 4 && (
@@ -1141,23 +1226,8 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
           >
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-muted block sm:hidden" />
             
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-[9px] uppercase tracking-wider bg-[#007000] text-white px-2.5 py-0.5 rounded-md font-bold">
-                  {selectedRecipe.category}
-                </span>
-                <p className="font-display text-lg font-extrabold mt-1.5 capitalize text-foreground">{selectedRecipe.title}</p>
-              </div>
-              <button 
-                onClick={() => { setSelectedRecipe(null); setAiAnalysis(null); }} 
-                className="rounded-xl border border-border bg-muted/40 p-1.5 text-muted-foreground hover:text-foreground active:scale-95 transition"
-              >
-                <X className="h-4.5 w-4.5" />
-              </button>
-            </div>
-
-            {/* Image Hero Frame */}
-            <div className="mt-4 aspect-video w-full overflow-hidden rounded-2xl border border-border bg-muted flex items-center justify-center relative">
+            {/* Image Hero Frame with Overlaid Title & Category at the bottom down position */}
+            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-muted flex items-center justify-center">
               <img 
                 src={selectedRecipe.image} 
                 alt={selectedRecipe.title} 
@@ -1166,6 +1236,27 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   e.currentTarget.src = "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
                 }}
               />
+              
+              {/* Dark gradient overlay for readability at the bottom */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/40" />
+              
+              {/* Close Button Top Right */}
+              <button 
+                onClick={() => { setSelectedRecipe(null); setAiAnalysis(null); }} 
+                className="absolute top-3 right-3 rounded-full bg-black/55 backdrop-blur-sm p-1.5 text-white hover:bg-black/75 active:scale-95 transition cursor-pointer z-10 border border-white/10"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              {/* Category and Title overlaid at the bottom down position */}
+              <div className="absolute bottom-3.5 left-4 right-4 z-10 text-white flex flex-col items-start">
+                <span className="text-[8px] uppercase tracking-wider bg-[#007000] text-white px-2 py-0.5 rounded font-bold shadow-sm inline-block">
+                  {selectedRecipe.category}
+                </span>
+                <p className="font-display text-base font-black mt-1.5 capitalize leading-tight drop-shadow-md text-white">
+                  {selectedRecipe.title}
+                </p>
+              </div>
             </div>
 
             {/* Quick Stats Grid */}
