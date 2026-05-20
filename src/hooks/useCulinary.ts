@@ -9,10 +9,15 @@ export function useRecipes() {
     queryKey: ["recipes"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      const { data, error } = await supabase
-        .from("recipes")
-        .select("*")
-        .order("created_at", { ascending: false });
+      
+      let query = supabase.from("recipes").select("*");
+      if (user) {
+        query = query.or(`user_id.eq.${user.id},user_id.is.null`);
+      } else {
+        query = query.is("user_id", null);
+      }
+      
+      const { data, error } = await query.order("created_at", { ascending: false });
         
       if (error) {
         console.error("Failed to fetch recipes from Supabase:", error);

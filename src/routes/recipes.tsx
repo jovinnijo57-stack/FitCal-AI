@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PhoneShell, ScreenHeader } from "@/components/PhoneShell";
 import { 
   Plus, Calendar, Search, Mic, MicOff, Clock, Sparkles, 
-  Trash2, X, ChevronRight, ShoppingCart, Info, Flame, ChevronLeft 
+  Trash2, X, ChevronRight, ShoppingCart, Info, Flame, ChevronLeft,
+  Image
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -59,6 +60,7 @@ function RecipesPage() {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const datePickerRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Selected date for planner
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -73,6 +75,10 @@ function RecipesPage() {
   // AI analysis state for the detail modal
   const [analyzingRecipeId, setAnalyzingRecipeId] = useState<string | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+
+  // Marquee controls
+  const [isMarqueePaused, setIsMarqueePaused] = useState(false);
+  const [showNameOnlyId, setShowNameOnlyId] = useState<string | null>(null);
 
   // Form state for creating custom recipe
   const [newTitle, setNewTitle] = useState("");
@@ -190,6 +196,17 @@ function RecipesPage() {
     const copy = [...instructions];
     copy[idx] = val;
     setInstructions(copy);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Create Recipe Handler
@@ -560,41 +577,118 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                       )}
                     </div>
                   ))}
-                  {/* Trending Recipes: Auto-scrolling marquee of recipe images. */}
+                  {/* Trending Recipes: Auto-scrolling marquee of recipe images. Hovering or clicking pauses and displays the name only. */}
                   <div className="space-y-2 py-3 border-y border-border/60 my-2 overflow-hidden">
                     <div className="flex items-center justify-between px-1">
                       <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                         Trending Recipes
                       </h3>
+                      {isMarqueePaused && (
+                        <button 
+                          onClick={() => {
+                            setIsMarqueePaused(false);
+                            setShowNameOnlyId(null);
+                          }}
+                          className="text-[9px] font-extrabold text-[#007000] hover:underline"
+                        >
+                          Resume Scroll
+                        </button>
+                      )}
                     </div>
-                    <div className="relative w-full overflow-hidden rounded-2xl bg-muted/40 p-2">
-                      <div className="animate-marquee gap-3 flex hover:[animation-play-state:paused]">
+                    <div 
+                      className="relative w-full overflow-hidden rounded-2xl bg-muted/40 p-2 cursor-pointer"
+                      onClick={() => {
+                        setIsMarqueePaused(false);
+                        setShowNameOnlyId(null);
+                      }}
+                    >
+                      <div 
+                        className={`animate-marquee gap-3 flex ${isMarqueePaused ? "[animation-play-state:paused]" : "hover:[animation-play-state:paused]"}`}
+                      >
                         {/* Set 1 */}
-                        {recipes.slice(0, 6).map((recipe) => (
-                          <div 
-                            key={recipe.id}
-                            className="relative w-28 h-20 rounded-xl overflow-hidden shadow-sm flex-shrink-0 border border-border"
-                          >
-                            <img 
-                              src={recipe.image} 
-                              alt={recipe.title} 
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
+                        {recipes.slice(0, 6).map((recipe) => {
+                          const isNameOnly = showNameOnlyId === recipe.id;
+                          return (
+                            <div 
+                              key={recipe.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsMarqueePaused(true);
+                                setShowNameOnlyId(isNameOnly ? null : recipe.id);
+                              }}
+                              className="relative w-28 h-20 rounded-xl overflow-hidden cursor-pointer group shadow-sm flex-shrink-0 border border-border"
+                            >
+                              {!isNameOnly ? (
+                                <>
+                                  <img 
+                                    src={recipe.image} 
+                                    alt={recipe.title} 
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                  />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center p-1.5 transition-opacity text-center">
+                                    <span className="text-[9px] text-white font-bold whitespace-normal leading-tight">
+                                      {recipe.title}
+                                    </span>
+                                  </div>
+                                  <div className="absolute bottom-0 inset-x-0 bg-black/65 py-1 text-center group-hover:hidden transition-all">
+                                    <p className="text-[8px] text-white font-bold truncate px-1">{recipe.title}</p>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="w-full h-full bg-[#007000] flex flex-col items-center justify-center p-2 text-center transition-all duration-300">
+                                  <span className="text-[9px] text-white font-black whitespace-normal leading-tight font-display">
+                                    {recipe.title}
+                                  </span>
+                                  <span className="text-[7px] text-white/80 mt-1 uppercase font-bold tracking-wider">
+                                    {recipe.category}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                         {/* Set 2 (Duplicates) */}
-                        {recipes.slice(0, 6).map((recipe) => (
-                          <div 
-                            key={`${recipe.id}-dup`}
-                            className="relative w-28 h-20 rounded-xl overflow-hidden shadow-sm flex-shrink-0 border border-border"
-                          >
-                            <img 
-                              src={recipe.image} 
-                              alt={recipe.title} 
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
+                        {recipes.slice(0, 6).map((recipe) => {
+                          const isNameOnly = showNameOnlyId === `${recipe.id}-dup`;
+                          return (
+                            <div 
+                              key={`${recipe.id}-dup`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsMarqueePaused(true);
+                                setShowNameOnlyId(isNameOnly ? null : `${recipe.id}-dup`);
+                              }}
+                              className="relative w-28 h-20 rounded-xl overflow-hidden cursor-pointer group shadow-sm flex-shrink-0 border border-border"
+                            >
+                              {!isNameOnly ? (
+                                <>
+                                  <img 
+                                    src={recipe.image} 
+                                    alt={recipe.title} 
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                  />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center p-1.5 transition-opacity text-center">
+                                    <span className="text-[9px] text-white font-bold whitespace-normal leading-tight">
+                                      {recipe.title}
+                                    </span>
+                                  </div>
+                                  <div className="absolute bottom-0 inset-x-0 bg-black/65 py-1 text-center group-hover:hidden transition-all">
+                                    <p className="text-[8px] text-white font-bold truncate px-1">{recipe.title}</p>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="w-full h-full bg-[#007000] flex flex-col items-center justify-center p-2 text-center transition-all duration-300">
+                                  <span className="text-[9px] text-white font-black whitespace-normal leading-tight font-display">
+                                    {recipe.title}
+                                  </span>
+                                  <span className="text-[7px] text-white/80 mt-1 uppercase font-bold tracking-wider">
+                                    {recipe.category}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1031,14 +1125,42 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Image URL (Optional)</label>
+                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">Recipe Image</label>
                 <input 
-                  type="text" 
-                  placeholder="Paste URL starting with https://..." 
-                  value={newImage}
-                  onChange={(e) => setNewImage(e.target.value)}
-                  className="w-full mt-1 px-3.5 py-2.5 rounded-xl border border-border bg-card text-xs focus:border-[#007000] focus:outline-none text-foreground"
+                  type="file" 
+                  ref={fileInputRef}
+                  accept="image/*" 
+                  onChange={handleImageChange}
+                  className="hidden"
                 />
+                {newImage ? (
+                  <div className="relative group rounded-xl overflow-hidden border border-border aspect-[16/9]">
+                    <img 
+                      src={newImage} 
+                      alt="Recipe Preview" 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="bg-card text-foreground px-3 py-1.5 rounded-lg text-xs font-semibold shadow hover:bg-muted transition"
+                      >
+                        Change Image
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full flex flex-col items-center justify-center py-6 px-4 rounded-xl border border-dashed border-border hover:border-[#007000] hover:bg-muted/20 active:scale-[0.99] transition text-center"
+                  >
+                    <Image className="h-6 w-6 text-muted-foreground mb-1.5" />
+                    <span className="text-xs font-medium text-foreground">Upload from Gallery</span>
+                    <span className="text-[10px] text-muted-foreground mt-0.5">Supports PNG, JPG, WebP</span>
+                  </button>
+                )}
               </div>
 
               {/* Form Ingredients editor */}
@@ -1129,7 +1251,7 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
               disabled={createRecipeMutation.isPending}
               className="w-full mt-5 rounded-2xl bg-gradient-hero py-3.5 font-display font-bold text-xs text-white shadow-glow active:scale-95 transition disabled:opacity-50"
             >
-              {createRecipeMutation.isPending ? "Saving..." : "Save Recipe to Database"}
+              {createRecipeMutation.isPending ? "Saving..." : "Save Recipe"}
             </button>
           </form>
         </div>
