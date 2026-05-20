@@ -53,12 +53,12 @@ function RecipesPage() {
   };
 
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Search & Voice Recognition
   const [searchQuery, setSearchQuery] = useState("");
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const datePickerRef = useRef<HTMLInputElement>(null);
 
   // Selected date for planner
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -73,10 +73,6 @@ function RecipesPage() {
   // AI analysis state for the detail modal
   const [analyzingRecipeId, setAnalyzingRecipeId] = useState<string | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
-
-  // Marquee controls
-  const [isMarqueePaused, setIsMarqueePaused] = useState(false);
-  const [showNameOnlyId, setShowNameOnlyId] = useState<string | null>(null);
 
   // Form state for creating custom recipe
   const [newTitle, setNewTitle] = useState("");
@@ -564,123 +560,45 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                       )}
                     </div>
                   ))}
+                  {/* Trending Recipes: Auto-scrolling marquee of recipe images. */}
+                  <div className="space-y-2 py-3 border-y border-border/60 my-2 overflow-hidden">
+                    <div className="flex items-center justify-between px-1">
+                      <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                        Trending Recipes
+                      </h3>
+                    </div>
+                    <div className="relative w-full overflow-hidden rounded-2xl bg-muted/40 p-2">
+                      <div className="animate-marquee gap-3 flex hover:[animation-play-state:paused]">
+                        {/* Set 1 */}
+                        {recipes.slice(0, 6).map((recipe) => (
+                          <div 
+                            key={recipe.id}
+                            className="relative w-28 h-20 rounded-xl overflow-hidden shadow-sm flex-shrink-0 border border-border"
+                          >
+                            <img 
+                              src={recipe.image} 
+                              alt={recipe.title} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                        {/* Set 2 (Duplicates) */}
+                        {recipes.slice(0, 6).map((recipe) => (
+                          <div 
+                            key={`${recipe.id}-dup`}
+                            className="relative w-28 h-20 rounded-xl overflow-hidden shadow-sm flex-shrink-0 border border-border"
+                          >
+                            <img 
+                              src={recipe.image} 
+                              alt={recipe.title} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-
-                 {/* Trending Recipes: Auto-scrolling marquee of recipe images. Hovering or clicking pauses and displays the name only. */}
-                 <div className="space-y-2 py-3 border-y border-border/60 my-2 overflow-hidden">
-                   <div className="flex items-center justify-between px-1">
-                     <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                       Trending Recipes
-                     </h3>
-                     {isMarqueePaused && (
-                       <button 
-                         onClick={() => {
-                           setIsMarqueePaused(false);
-                           setShowNameOnlyId(null);
-                         }}
-                         className="text-[9px] font-extrabold text-[#007000] hover:underline"
-                       >
-                         Resume Scroll
-                       </button>
-                     )}
-                   </div>
-                   <div 
-                     className="relative w-full overflow-hidden rounded-2xl bg-muted/40 p-2 cursor-pointer"
-                     onClick={() => {
-                       setIsMarqueePaused(false);
-                       setShowNameOnlyId(null);
-                     }}
-                   >
-                     <div 
-                       className={`animate-marquee gap-3 flex ${isMarqueePaused ? "[animation-play-state:paused]" : "hover:[animation-play-state:paused]"}`}
-                     >
-                       {/* Set 1 */}
-                       {recipes.slice(0, 6).map((recipe) => {
-                         const isNameOnly = showNameOnlyId === recipe.id;
-                         return (
-                           <div 
-                             key={recipe.id}
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               setIsMarqueePaused(true);
-                               setShowNameOnlyId(isNameOnly ? null : recipe.id);
-                             }}
-                             className="relative w-28 h-20 rounded-xl overflow-hidden cursor-pointer group shadow-sm flex-shrink-0 border border-border"
-                           >
-                             {!isNameOnly ? (
-                               <>
-                                 <img 
-                                   src={recipe.image} 
-                                   alt={recipe.title} 
-                                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                 />
-                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center p-1.5 transition-opacity text-center">
-                                   <span className="text-[9px] text-white font-bold whitespace-normal leading-tight">
-                                     {recipe.title}
-                                   </span>
-                                 </div>
-                                 <div className="absolute bottom-0 inset-x-0 bg-black/65 py-1 text-center group-hover:hidden transition-all">
-                                   <p className="text-[8px] text-white font-bold truncate px-1">{recipe.title}</p>
-                                 </div>
-                               </>
-                             ) : (
-                               <div className="w-full h-full bg-[#007000] flex flex-col items-center justify-center p-2 text-center transition-all duration-300">
-                                 <span className="text-[9px] text-white font-black whitespace-normal leading-tight font-display">
-                                   {recipe.title}
-                                 </span>
-                                 <span className="text-[7px] text-white/80 mt-1 uppercase font-bold tracking-wider">
-                                   {recipe.category}
-                                 </span>
-                               </div>
-                             )}
-                           </div>
-                         );
-                       })}
-                       {/* Set 2 (Duplicates) */}
-                       {recipes.slice(0, 6).map((recipe) => {
-                         const isNameOnly = showNameOnlyId === `${recipe.id}-dup`;
-                         return (
-                           <div 
-                             key={`${recipe.id}-dup`}
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               setIsMarqueePaused(true);
-                               setShowNameOnlyId(isNameOnly ? null : `${recipe.id}-dup`);
-                             }}
-                             className="relative w-28 h-20 rounded-xl overflow-hidden cursor-pointer group shadow-sm flex-shrink-0 border border-border"
-                           >
-                             {!isNameOnly ? (
-                               <>
-                                 <img 
-                                   src={recipe.image} 
-                                   alt={recipe.title} 
-                                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                 />
-                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center p-1.5 transition-opacity text-center">
-                                   <span className="text-[9px] text-white font-bold whitespace-normal leading-tight">
-                                     {recipe.title}
-                                   </span>
-                                 </div>
-                                 <div className="absolute bottom-0 inset-x-0 bg-black/65 py-1 text-center group-hover:hidden transition-all">
-                                   <p className="text-[8px] text-white font-bold truncate px-1">{recipe.title}</p>
-                                 </div>
-                               </>
-                             ) : (
-                               <div className="w-full h-full bg-[#007000] flex flex-col items-center justify-center p-2 text-center transition-all duration-300">
-                                 <span className="text-[9px] text-white font-black whitespace-normal leading-tight font-display">
-                                   {recipe.title}
-                                 </span>
-                                 <span className="text-[7px] text-white/80 mt-1 uppercase font-bold tracking-wider">
-                                   {recipe.category}
-                                 </span>
-                               </div>
-                             )}
-                           </div>
-                         );
-                       })}
-                     </div>
-                   </div>
-                 </div>
 
                 {/* Remaining recipes in the grid */}
                 {filteredRecipes.length > 4 && (
@@ -797,30 +715,33 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-[#007000]" />
-                  <h3 className="text-sm font-bold text-foreground">
-                    Weekly Schedule
-                  </h3>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground leading-tight">
+                      Weekly Schedule
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground font-semibold">
+                      {new Date(selectedDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                  </div>
                 </div>
                 <div className="relative">
                   <button
-                    onClick={() => setShowDatePicker(true)}
+                    onClick={() => datePickerRef.current?.showPicker()}
                     className="flex items-center gap-1 text-[11px] font-semibold text-[#007000] bg-[#007000]/10 hover:bg-[#007000]/15 px-3 py-1 rounded-full border border-[#007000]/20 transition duration-200 active:scale-95 cursor-pointer"
                   >
                     <span>Pick Date</span>
                   </button>
-                  {showDatePicker && (
-                    <input 
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => {
+                  <input 
+                    ref={datePickerRef}
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => {
+                      if (e.target.value) {
                         setSelectedDate(e.target.value);
-                        setShowDatePicker(false);
-                      }}
-                      className="absolute right-0 top-0 opacity-0 cursor-pointer w-20 z-10"
-                      autoFocus
-                      onBlur={() => setTimeout(() => setShowDatePicker(false), 200)}
-                    />
-                  )}
+                      }
+                    }}
+                    className="hidden"
+                  />
                 </div>
               </div>
 
@@ -918,7 +839,11 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                     return (
                       <div 
                         key={plan.id}
-                        className="rounded-2xl border border-border bg-card p-3 shadow-sm hover:border-[#007000]/25 transition duration-200 flex flex-col gap-3 relative"
+                        onClick={() => {
+                          setSelectedRecipe(recipe);
+                          setAiAnalysis(STATIC_AI_ANALYSIS[recipe.id] || null);
+                        }}
+                        className="group rounded-2xl border border-border bg-card p-3 shadow-sm hover:border-[#007000]/25 transition duration-200 flex flex-col gap-3 relative cursor-pointer"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex gap-3">
@@ -945,7 +870,10 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
 
                           <div className="flex gap-1">
                             <button
-                              onClick={() => deleteMealPlanMutation.mutate(plan.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteMealPlanMutation.mutate(plan.id);
+                              }}
                               className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 active:scale-95 transition"
                               title="Remove from Schedule"
                             >
@@ -957,7 +885,8 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                         {/* AI steps inline generator button */}
                         <div className="mt-1 border-t border-border/40 pt-2">
                           <button
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setSelectedRecipe(recipe);
                               handleAiAnalysis(recipe);
                             }}
