@@ -894,17 +894,6 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                     <Plus className="h-3 w-3" />
                     <span>Add</span>
                   </button>
-
-                  {/* Batch Add to Cart */}
-                  {dailyPlans.length > 0 && (
-                    <button
-                      onClick={addAllPlannedToCart}
-                      className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-500/10 hover:bg-[#007000]/15 px-2.5 py-1 rounded-full transition active:scale-95"
-                    >
-                      <ShoppingCart className="h-3.5 w-3.5" />
-                      <span>All to Cart</span>
-                    </button>
-                  )}
                 </div>
               </div>
 
@@ -1226,8 +1215,23 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
           >
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-muted block sm:hidden" />
             
-            {/* Image Hero Frame with Overlaid Title & Category at the bottom down position */}
-            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-muted flex items-center justify-center">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[9px] uppercase tracking-wider bg-[#007000] text-white px-2.5 py-0.5 rounded-md font-bold">
+                  {selectedRecipe.category}
+                </span>
+                <p className="font-display text-lg font-extrabold mt-1.5 capitalize text-foreground">{selectedRecipe.title}</p>
+              </div>
+              <button 
+                onClick={() => { setSelectedRecipe(null); setAiAnalysis(null); }} 
+                className="rounded-xl border border-border bg-muted/40 p-1.5 text-muted-foreground hover:text-foreground active:scale-95 transition"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            {/* Image Hero Frame */}
+            <div className="mt-4 aspect-video w-full overflow-hidden rounded-2xl border border-border bg-muted flex items-center justify-center relative">
               <img 
                 src={selectedRecipe.image} 
                 alt={selectedRecipe.title} 
@@ -1236,27 +1240,6 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   e.currentTarget.src = "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
                 }}
               />
-              
-              {/* Dark gradient overlay for readability at the bottom */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/40" />
-              
-              {/* Close Button Top Right */}
-              <button 
-                onClick={() => { setSelectedRecipe(null); setAiAnalysis(null); }} 
-                className="absolute top-3 right-3 rounded-full bg-black/55 backdrop-blur-sm p-1.5 text-white hover:bg-black/75 active:scale-95 transition cursor-pointer z-10 border border-white/10"
-              >
-                <X className="h-4 w-4" />
-              </button>
-
-              {/* Category and Title overlaid at the bottom down position */}
-              <div className="absolute bottom-3.5 left-4 right-4 z-10 text-white flex flex-col items-start">
-                <span className="text-[8px] uppercase tracking-wider bg-[#007000] text-white px-2 py-0.5 rounded font-bold shadow-sm inline-block">
-                  {selectedRecipe.category}
-                </span>
-                <p className="font-display text-base font-black mt-1.5 capitalize leading-tight drop-shadow-md text-white">
-                  {selectedRecipe.title}
-                </p>
-              </div>
             </div>
 
             {/* Quick Stats Grid */}
