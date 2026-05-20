@@ -54,8 +54,9 @@ function Profile() {
       const { data: userData } = await supabase.auth.getUser();
       if (userData?.user) {
         userId = userData.user.id;
-        // 1. Update profiles table first
-        await supabase.from("profiles").update({
+        // 1. Upsert/Update profiles table first and await it
+        await supabase.from("profiles").upsert({
+          id: userId,
           name: editForm.name,
           phone: editForm.phone,
           age: Number(editForm.age),
@@ -63,10 +64,30 @@ function Profile() {
           height_cm: Number(editForm.heightCm),
           diet: editForm.diet,
           workout_type: editForm.workoutType,
-        }).eq("id", userId);
+          calorie_goal: profile.calorieGoal,
+          water_goal_ml: profile.waterGoalMl,
+          protein_goal: profile.proteinGoal,
+          carbs_goal: profile.carbsGoal,
+          fats_goal: profile.fatsGoal,
+          goal: profile.goal,
+        });
       }
 
-      // 2. Then update user auth metadata (which triggers USER_UPDATED and store reloading)
+      // 2. Sync local state first so in-memory state is updated
+      const updatedProfile = {
+        ...profile,
+        name: editForm.name,
+        age: Number(editForm.age),
+        heightCm: Number(editForm.heightCm),
+        weightKg: Number(editForm.weightKg),
+        diet: editForm.diet,
+        workoutType: editForm.workoutType,
+      };
+      setProfile(updatedProfile as any);
+      saveWeightHistory(Number(editForm.weightKg), profile.email || userMeta.email, userId);
+      setUserMeta(prev => ({ ...prev, name: editForm.name, phone: editForm.phone }));
+
+      // 3. Then update user auth metadata (which triggers USER_UPDATED and store reloading in background)
       await supabase.auth.updateUser({
         data: { full_name: editForm.name, phone: editForm.phone }
       });
@@ -74,20 +95,6 @@ function Profile() {
       console.error(err);
     }
 
-    const updatedProfile = {
-      ...profile,
-      name: editForm.name,
-      age: Number(editForm.age),
-      heightCm: Number(editForm.heightCm),
-      weightKg: Number(editForm.weightKg),
-      diet: editForm.diet,
-      workoutType: editForm.workoutType,
-    };
-    
-    // 3. Sync local state
-    setProfile(updatedProfile as any);
-    saveWeightHistory(Number(editForm.weightKg), profile.email || userMeta.email, userId);
-    setUserMeta(prev => ({ ...prev, name: editForm.name, phone: editForm.phone }));
     setIsEditing(false);
   };
 
