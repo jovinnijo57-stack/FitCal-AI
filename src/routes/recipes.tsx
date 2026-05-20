@@ -378,12 +378,12 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
         {activeTab === "corner" && (
           <div className="space-y-4">
             
-            {/* Pizza Banner at the top above the search bar - Square layout */}
-            <div className="aspect-square w-full rounded-3xl overflow-hidden mb-4 border border-border/70 bg-card shadow-sm">
+            {/* Pizza Banner at the top above the search bar */}
+            <div className="rounded-3xl overflow-hidden mb-4 border border-border/70 bg-card shadow-sm">
               <img 
                 src="/chef_corner_banner.jpg" 
                 alt="Chef's Corner Banner" 
-                className="w-full h-full object-cover" 
+                className="w-full h-auto object-cover" 
               />
             </div>
 
