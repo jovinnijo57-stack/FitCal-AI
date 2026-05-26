@@ -16,7 +16,11 @@ function Dashboard() {
   const { state, addWater } = useStore();
   const totals = useTotals();
   const { profile } = state;
-  const userName = profile.name || "User";
+  
+  let firstName = "User";
+  if (profile.name && profile.name.trim() !== "" && !profile.name.includes("PulsePeak") && !profile.name.includes("New User")) {
+    firstName = profile.name.split(" ")[0];
+  }
 
   const weightHistory = getWeightHistory(profile.email, profile.weightKg);
   const calorieHistory = getCalorieHistory(totals.eaten.kcal, totals.burned, profile.email);
@@ -31,7 +35,7 @@ function Dashboard() {
   return (
     <PhoneShell>
       <ScreenHeader
-        title={`Hey ${userName.split(" ")[0]} 👋`}
+        title={`Hey ${firstName} 👋`}
         subtitle="Let's crush today's goals."
         action={
           <Link to="/profile" className="grid h-10 w-10 place-items-center rounded-2xl border border-border bg-card">

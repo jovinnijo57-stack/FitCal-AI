@@ -46,18 +46,11 @@ function Onboarding() {
               name: profileData.name || authData?.user?.user_metadata?.full_name || authData?.user?.user_metadata?.name || "" 
             });
           }
-          // Check if they logged in via Google and need phone
-          const isGoogle = user?.app_metadata?.provider === 'google' || 
-                           user?.app_metadata?.providers?.includes('google') || 
-                           user?.user_metadata?.iss?.includes('google') ||
-                           user?.identities?.some((id: any) => id.provider === 'google');
-          if (isGoogle) {
-            const hasPhone = !!(profileData?.phone || user?.user_metadata?.phone || user?.phone);
-            if (!hasPhone) {
-              setShowPhonePopup(true);
-            } else {
-              setShowPhonePopup(false);
-            }
+          // Check if they need to enter a phone number (e.g. Google login users)
+          // Since email signups require phone upfront, anyone missing it needs the popup
+          const hasPhone = !!(profileData?.phone || user?.user_metadata?.phone || user?.phone);
+          if (!hasPhone) {
+            setShowPhonePopup(true);
           } else {
             setShowPhonePopup(false);
           }

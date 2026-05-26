@@ -166,6 +166,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (waterData) {
             loaded.waterMl = waterData.amount_ml;
           }
+
+          // Sync Weight History to local storage for charts
+          const { data: weightData } = await supabase.from("weight_logs").select("*").eq("user_id", userId).order("logged_date", { ascending: true });
+          if (weightData && weightData.length > 0) {
+            const userKey = `pulsepeak_weight_${loaded.profile.email || 'default'}`;
+            const mapped = weightData.map((w: any) => {
+              // Convert ISO date (YYYY-MM-DD) to a Date object safely (avoiding timezone offset issues)
+              const [year, month, day] = w.logged_date.split("-").map(Number);
+              const dateObj = new Date(year, month - 1, day);
+              return {
+                day: dateObj.toLocaleDateString("en-US", { weekday: "short" }),
+                weight: Number(w.weight_kg)
+              };
+            });
+            localStorage.setItem(userKey, JSON.stringify(mapped));
+          }
         }
 
         setState(loaded);
