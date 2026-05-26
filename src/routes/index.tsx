@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Sparkles, Flame, Apple } from "lucide-react";
 import { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -15,39 +15,35 @@ export const Route = createFileRoute("/")({
 });
 
 function Splash() {
-  const [showIntro, setShowIntro] = useState(true);
   const nav = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
-    async function checkAuthRedirect() {
+    async function checkSession() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const { data: profile } = await supabase.from("profiles").select("ai_plan").eq("id", session.user.id).maybeSingle();
+          const { data: profile } = await supabase.from("profiles").select("ai_plan").eq("id", session.user.id).single();
           if (profile && profile.ai_plan) {
             nav({ to: "/dashboard" });
+            return;
           } else {
             nav({ to: "/onboarding" });
+            return;
           }
         }
-      } catch (err) {
-        console.error("Auth redirect error:", err);
-      }
+      } catch (err) {}
+      setLoading(false);
     }
-    checkAuthRedirect();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
-        checkAuthRedirect();
-      }
-    });
-
-    const timer = setTimeout(() => setShowIntro(false), 2200);
-    return () => {
-      clearTimeout(timer);
-      subscription.unsubscribe();
-    };
+    checkSession();
   }, [nav]);
+
+  useEffect(() => {
+    if (loading) return;
+    const timer = setTimeout(() => setShowIntro(false), 2200);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   if (showIntro) {
     return (

@@ -10,6 +10,7 @@ export const Route = createFileRoute("/onboarding")({ component: Onboarding });
 function Onboarding() {
   const { setProfile } = useStore();
   const nav = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(0);
   const [analyzing, setAnalyzing] = useState(false);
   const [data, setData] = useState<any>({
@@ -23,7 +24,6 @@ function Onboarding() {
   const [phoneInput, setPhoneInput] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);
-
   useEffect(() => {
     async function checkExistingProfile() {
       try {
@@ -39,19 +39,26 @@ function Onboarding() {
             return;
           }
           // Check if they logged in via Google and need phone
-          const isGoogle = 
-            user?.app_metadata?.provider === 'google' || 
-            user?.app_metadata?.providers?.includes('google') || 
-            user?.user_metadata?.iss?.includes('google') ||
-            user?.identities?.some((id: any) => id.provider === 'google');
+          const isGoogle = user?.app_metadata?.provider === 'google' || 
+                           user?.app_metadata?.providers?.includes('google') || 
+                           user?.user_metadata?.iss?.includes('google') ||
+                           user?.identities?.some((id: any) => id.provider === 'google');
           if (isGoogle) {
-            const metaPhone = (profileData && profileData.phone) || user?.user_metadata?.phone;
-            if (!metaPhone) {
+            const hasPhone = !!(profileData?.phone || user?.user_metadata?.phone || user?.phone);
+            if (!hasPhone) {
               setShowPhonePopup(true);
+            } else {
+              setShowPhonePopup(false);
             }
+          } else {
+            setShowPhonePopup(false);
           }
         }
-      } catch (err) { console.error("checkExistingProfile error:", err); }
+      } catch (err) { 
+        console.error("checkExistingProfile error:", err); 
+      } finally {
+        setLoading(false);
+      }
     }
     checkExistingProfile();
 
@@ -76,27 +83,32 @@ function Onboarding() {
     try {
       const { data: authData } = await supabase.auth.getUser();
       if (authData?.user) {
-        // Check if phone number already exists in another profile
+        // Check if the phone number already exists in profiles table
         const { data: existing, error: checkError } = await supabase
           .from("profiles")
           .select("id")
-          .eq("phone", fullPhone)
-          .not("id", "eq", authData.user.id);
-        
+          .eq("phone", fullPhone);
+
         if (checkError) throw checkError;
-        
-        if (existing && existing.length > 0) {
-          setPhoneError("Phone number already exists.");
+
+        if (existing && existing.length > 0 && existing.some(p => p.id !== authData.user.id)) {
+          setPhoneError("already exists");
           setSavingPhone(false);
           return;
         }
 
+        // Update auth metadata
         await supabase.auth.updateUser({
           data: { phone: fullPhone }
         });
-        await supabase.from("profiles").update({
-          phone: fullPhone
-        }).eq("id", authData.user.id);
+
+        // Upsert into profiles table to make sure the row is created and phone is saved
+        await supabase.from("profiles").upsert({
+          id: authData.user.id,
+          email: authData.user.email,
+          name: authData.user.user_metadata?.full_name || "PulsePeak User",
+          phone: fullPhone,
+        }, { onConflict: 'id' });
         
         setProfile({ phone: fullPhone });
       }
@@ -107,7 +119,6 @@ function Onboarding() {
       setSavingPhone(false);
     }
   };
-
   const totalSteps = 7;
 
   const finish = async () => {
@@ -217,61 +228,78 @@ Provide a JSON response with exactly this structure:
     nav({ to: "/dashboard" });
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-dvh bg-background flex items-center justify-center p-6">
+        <div className="flex flex-col items-center">
+          <div className="relative h-16 w-16 mb-4">
+            <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
+            <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+          </div>
+          <p className="text-sm text-muted-foreground font-medium animate-pulse">Initializing PulsePeak Onboarding...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showPhonePopup) {
+    return (
+      <div className="min-h-dvh bg-background flex items-center justify-center p-6 relative">
+        <div className="bg-gradient-card border border-border rounded-3xl p-8 max-w-sm w-full shadow-glow flex flex-col items-center animate-in zoom-in-95 duration-300">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 shadow-sm">
+            <Phone className="h-8 w-8" />
+          </div>
+          <h3 className="font-display text-2xl font-bold text-foreground text-center">Complete Your Profile</h3>
+          <p className="text-sm text-muted-foreground mt-2 text-center">As a Google login user, please enter your phone number before setting up your personalized AI plan.</p>
+          
+          <form onSubmit={handleSavePhone} className="w-full mt-6 space-y-4">
+            <div>
+              <div className="flex items-center gap-2 rounded-2xl border border-border bg-card/80 backdrop-blur-md px-3 py-3.5 transition-all focus-within:ring-2 focus-within:ring-primary/50">
+                <Phone className="h-4 w-4 ml-1 text-muted-foreground" />
+                <select 
+                  value={countryCode} 
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  className="bg-transparent text-sm outline-none appearance-none pr-2 font-medium"
+                >
+                  <option value="+91">🇮🇳 +91</option>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+61">🇦🇺 +61</option>
+                  <option value="+1">🇨🇦 +1</option>
+                  <option value="+49">🇩🇪 +49</option>
+                  <option value="+33">🇫🇷 +33</option>
+                  <option value="+81">🇯🇵 +81</option>
+                  <option value="+55">🇧🇷 +55</option>
+                  <option value="+27">🇿🇦 +27</option>
+                </select>
+                <div className="h-4 w-px bg-border" />
+                <input 
+                  type="tel" 
+                  value={phoneInput} 
+                  onChange={(e) => { setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10)); setPhoneError(""); }} 
+                  placeholder="Phone number" 
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" 
+                  required 
+                />
+              </div>
+              {phoneError && <p className="mt-1.5 text-xs font-medium text-destructive px-1 animate-in slide-in-from-top-1">{phoneError}</p>}
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={savingPhone || phoneInput.length < 10}
+              className="w-full rounded-2xl bg-gradient-hero py-4 font-display text-base font-semibold text-primary-foreground shadow-glow transition active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
+            >
+              {savingPhone ? "Saving..." : "Save Phone Number"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-dvh bg-background relative">
-      {showPhonePopup && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-gradient-card border border-border rounded-3xl p-8 max-w-sm w-full shadow-glow flex flex-col items-center animate-in zoom-in-95 duration-300">
-            <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 shadow-sm">
-              <Phone className="h-8 w-8" />
-            </div>
-            <h3 className="font-display text-2xl font-bold text-foreground text-center">Complete Your Profile</h3>
-            <p className="text-sm text-muted-foreground mt-2 text-center">As a Google login user, please enter your phone number before setting up your personalized AI plan.</p>
-            
-            <form onSubmit={handleSavePhone} className="w-full mt-6 space-y-4">
-              <div>
-                <div className="flex items-center gap-2 rounded-2xl border border-border bg-card/80 backdrop-blur-md px-3 py-3.5 transition-all focus-within:ring-2 focus-within:ring-primary/50">
-                  <Phone className="h-4 w-4 ml-1 text-muted-foreground" />
-                  <select 
-                    value={countryCode} 
-                    onChange={(e) => setCountryCode(e.target.value)}
-                    className="bg-transparent text-sm outline-none appearance-none pr-2 font-medium"
-                  >
-                    <option value="+91">🇮🇳 +91</option>
-                    <option value="+1">🇺🇸 +1</option>
-                    <option value="+44">🇬🇧 +44</option>
-                    <option value="+61">🇦🇺 +61</option>
-                    <option value="+1">🇨🇦 +1</option>
-                    <option value="+49">🇩🇪 +49</option>
-                    <option value="+33">🇫🇷 +33</option>
-                    <option value="+81">🇯🇵 +81</option>
-                    <option value="+55">🇧🇷 +55</option>
-                    <option value="+27">🇿🇦 +27</option>
-                  </select>
-                  <div className="h-4 w-px bg-border" />
-                  <input 
-                    type="tel" 
-                    value={phoneInput} 
-                    onChange={(e) => { setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10)); setPhoneError(""); }} 
-                    placeholder="Phone number" 
-                    className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" 
-                    required 
-                  />
-                </div>
-                {phoneError && <p className="mt-1.5 text-xs font-medium text-destructive px-1 animate-in slide-in-from-top-1">{phoneError}</p>}
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={savingPhone || phoneInput.length < 10}
-                className="w-full rounded-2xl bg-gradient-hero py-4 font-display text-base font-semibold text-primary-foreground shadow-glow transition active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
-              >
-                {savingPhone ? "Saving..." : "Save Phone Number"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       {analyzing && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">

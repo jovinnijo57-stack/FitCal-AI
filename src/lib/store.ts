@@ -242,7 +242,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setState((s) => ({ ...s, meals: [...s.meals, { id, meal, food, servings }] }));
     },
     removeMeal: (id) => {
-      supabase.from("meal_logs").delete().eq("id", id).then();
+      getUserId().then(userId => {
+        if (userId) {
+          supabase.from("meal_logs").delete().eq("id", id).eq("user_id", userId).then();
+        }
+      });
       setState((s) => ({ ...s, meals: s.meals.filter((m) => m.id !== id) }));
     },
     addExercise: (exercise, minutes) => {
@@ -266,7 +270,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }));
     },
     removeExercise: (id) => {
-      supabase.from("exercise_logs").delete().eq("id", id).then();
+      getUserId().then(userId => {
+        if (userId) {
+          supabase.from("exercise_logs").delete().eq("id", id).eq("user_id", userId).then();
+        }
+      });
       setState((s) => ({ ...s, exercises: s.exercises.filter((e) => e.id !== id) }));
     },
     addWater: (ml) => setState((s) => {
