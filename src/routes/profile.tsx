@@ -5,6 +5,7 @@ import { ChevronRight, Moon, Sun, Bell, LogOut, Crown, Shield, BarChart3, Sparkl
 import { useState, useEffect } from "react";
 import { saveWeightHistory } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — PulsePeak" }] }),
@@ -54,9 +55,17 @@ function Profile() {
       const { data: userData } = await supabase.auth.getUser();
       if (userData?.user) {
         userId = userData.user.id;
-        // 1. Upsert/Update profiles table first and await it
-        await supabase.from("profiles").upsert({
-          id: userId,
+        const { data: existingProfile, error: checkProfileError } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", userId)
+          .single();
+
+        if (checkProfileError && checkProfileError.code !== "PGRST116") {
+          throw checkProfileError;
+        }
+
+        const profilePayload = {
           name: editForm.name,
           phone: editForm.phone,
           age: Number(editForm.age),
@@ -70,7 +79,24 @@ function Profile() {
           carbs_goal: profile.carbsGoal,
           fats_goal: profile.fatsGoal,
           goal: profile.goal,
-        });
+        };
+
+        if (existingProfile) {
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update(profilePayload)
+            .eq("id", userId);
+          if (updateError) throw updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+              id: userId,
+              ...profilePayload
+            });
+          if (insertError) throw insertError;
+        }
+        toast.success("Profile saved successfully!");
       }
 
       // 2. Sync local state first so in-memory state is updated
@@ -91,8 +117,9 @@ function Profile() {
       await supabase.auth.updateUser({
         data: { full_name: editForm.name, phone: editForm.phone }
       });
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Profile save error:", err);
+      toast.error(err.message || "Failed to save profile changes.");
     }
 
     setIsEditing(false);

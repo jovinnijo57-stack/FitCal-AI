@@ -4,6 +4,7 @@ import { useStore, type Profile } from "@/lib/store";
 import { calcBMR, calcTDEE, goalAdjust, saveWeightHistory } from "@/lib/mock-data";
 import { Sparkles, Phone } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/onboarding")({ component: Onboarding });
 
@@ -103,13 +104,39 @@ function Onboarding() {
           data: { phone: fullPhone }
         });
 
-        // Upsert into profiles table to make sure the row is created and phone is saved
-        await supabase.from("profiles").upsert({
-          id: authData.user.id,
-          email: authData.user.email,
-          name: profile.name || authData.user.user_metadata?.full_name || authData.user.user_metadata?.name || "PulsePeak User",
-          phone: fullPhone,
-        }, { onConflict: 'id' });
+        const { data: existingProfile, error: checkProfileError } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", authData.user.id)
+          .single();
+
+        if (checkProfileError && checkProfileError.code !== "PGRST116") {
+          throw checkProfileError;
+        }
+
+        const profileName = profile.name || authData.user.user_metadata?.full_name || authData.user.user_metadata?.name || "PulsePeak User";
+
+        if (existingProfile) {
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({
+              email: authData.user.email,
+              name: profileName,
+              phone: fullPhone,
+            })
+            .eq("id", authData.user.id);
+          if (updateError) throw updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+              id: authData.user.id,
+              email: authData.user.email,
+              name: profileName,
+              phone: fullPhone,
+            });
+          if (insertError) throw insertError;
+        }
         
         setData((prev: any) => ({ ...prev, phone: fullPhone }));
         setProfile({ 
@@ -200,14 +227,21 @@ Provide a JSON response with exactly this structure:
       aiPlan,
     };
     setProfile(updatedProfile as any);
-
-    // Save to Supabase profiles table
     try {
       const { data: authData } = await supabase.auth.getUser();
       const userId = authData?.user?.id;
       if (userId) {
-        await supabase.from("profiles").upsert({
-          id: userId,
+        const { data: existingProfile, error: checkProfileError } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", userId)
+          .single();
+
+        if (checkProfileError && checkProfileError.code !== "PGRST116") {
+          throw checkProfileError;
+        }
+
+        const profilePayload = {
           email: authData.user?.email,
           name: profile.name || authData.user?.user_metadata?.full_name || authData.user?.user_metadata?.name || "PulsePeak User",
           phone: data.phone || profile.phone || authData.user?.user_metadata?.phone || authData.user?.phone || "",
@@ -225,11 +259,30 @@ Provide a JSON response with exactly this structure:
           activity: data.activity,
           diet: data.diet,
           workout_type: data.workoutType,
-        });
+        };
+
+        if (existingProfile) {
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update(profilePayload)
+            .eq("id", userId);
+          if (updateError) throw updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert({
+              id: userId,
+              ...profilePayload
+            });
+          if (insertError) throw insertError;
+        }
 
         saveWeightHistory(data.weightKg, authData.user?.email, userId);
       }
-    } catch (err) { console.error("Supabase profile save error:", err); }
+    } catch (err: any) {
+      console.error("Supabase profile save error:", err);
+      toast.error(err.message || "Failed to save profile to database.");
+    }
 
     setAnalyzing(false);
     nav({ to: "/dashboard" });

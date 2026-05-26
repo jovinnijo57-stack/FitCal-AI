@@ -101,13 +101,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const userId = authData?.user?.id || null;
         if (userId) {
           // Fetch Profile
-          const { data: profileData } = await supabase.from("profiles").select("*").eq("id", userId).single();
           if (profileData) {
+            const rawMetaName = authData?.user?.user_metadata?.full_name || authData?.user?.user_metadata?.name || "";
+            const isPlaceholderName = (n: string) => !n || n.includes("PulsePeak") || n.includes("New User");
+            const resolvedName = (profileData.name && !isPlaceholderName(profileData.name))
+              ? profileData.name
+              : (rawMetaName && !isPlaceholderName(rawMetaName))
+                ? rawMetaName
+                : profileData.name || "PulsePeak User";
+
             loaded.profile = {
               ...loaded.profile,
               email: profileData.email || authData?.user?.email || "",
               phone: profileData.phone || authData?.user?.user_metadata?.phone || "",
-              name: profileData.name || authData?.user?.user_metadata?.full_name || authData?.user?.user_metadata?.name || "PulsePeak User",
+              name: resolvedName,
               goal: profileData.goal || loaded.profile.goal,
               calorieGoal: profileData.calorie_goal || loaded.profile.calorieGoal,
               waterGoalMl: profileData.water_goal_ml || loaded.profile.waterGoalMl,
@@ -236,10 +243,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             if (updatedProfile.diet) payload.diet = updatedProfile.diet;
             if (updatedProfile.workoutType) payload.workout_type = updatedProfile.workoutType;
 
-            supabase.from("profiles").upsert(payload, { onConflict: 'id' }).then();
+            supabase.from("profiles").select("id").eq("id", userId).single().then(({ data: existingProfile }) => {
+              if (existingProfile) {
+                const { id, ...updatePayload } = payload;
+                supabase.from("profiles").update(updatePayload).eq("id", userId).then(({ error }) => {
+                  if (error) console.error("Store setProfile update error:", error);
+                });
+              } else {
+                supabase.from("profiles").insert(payload).then(({ error }) => {
+                  if (error) console.error("Store setProfile insert error:", error);
+                });
+              }
+            });
           }
         });
-      } catch {}
+      } catch (err) {
+        console.error("Store setProfile error:", err);
+      }
       return { ...s, profile: updatedProfile };
     }),
     addMeal: (meal, food, servings) => {

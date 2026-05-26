@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { clsx } from "clsx";
 import { supabase } from "../lib/supabase";
@@ -17,6 +17,20 @@ function Login() {
   const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        supabase.from("profiles").select("ai_plan").eq("id", session.user.id).single().then(({ data: profile }) => {
+          if (profile && profile.ai_plan) {
+            nav({ to: "/dashboard" });
+          } else {
+            nav({ to: "/onboarding" });
+          }
+        });
+      }
+    });
+  }, [nav]);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 

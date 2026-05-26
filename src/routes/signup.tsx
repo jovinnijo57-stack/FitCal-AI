@@ -172,12 +172,31 @@ function Signup() {
         if (!signInError && signInData?.user) {
           // Explicitly save profile data — the trigger may not fire until email is confirmed
           try {
-            await supabase.from("profiles").upsert({
-              id: signInData.user.id,
-              email: formData.email,
-              name: formData.name,
-              phone: fullPhone,
-            }, { onConflict: "id" });
+            const { data: existingProfile } = await supabase
+              .from("profiles")
+              .select("id")
+              .eq("id", signInData.user.id)
+              .single();
+
+            if (existingProfile) {
+              await supabase
+                .from("profiles")
+                .update({
+                  email: formData.email,
+                  name: formData.name,
+                  phone: fullPhone,
+                })
+                .eq("id", signInData.user.id);
+            } else {
+              await supabase
+                .from("profiles")
+                .insert({
+                  id: signInData.user.id,
+                  email: formData.email,
+                  name: formData.name,
+                  phone: fullPhone,
+                });
+            }
           } catch (_) {}
 
           setShowSuccessAnim(true);

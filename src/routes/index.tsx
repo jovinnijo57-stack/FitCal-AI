@@ -37,6 +37,14 @@ function Splash() {
       setLoading(false);
     }
     checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        checkSession();
+      }
+    });
+
+    return () => { subscription.unsubscribe(); };
   }, [nav]);
 
   useEffect(() => {
