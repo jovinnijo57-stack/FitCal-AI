@@ -263,3 +263,11 @@ CREATE POLICY "Allow owners to manage their meal plans"
 ON public.meal_plans FOR ALL 
 USING (auth.uid() = user_id) 
 WITH CHECK (auth.uid() = user_id);
+
+-- 8. Secure RPC Function to check if a phone number exists across all profiles
+CREATE OR REPLACE FUNCTION public.check_phone_exists(phone_to_check text)
+RETURNS boolean AS $$
+BEGIN
+  RETURN EXISTS(SELECT 1 FROM public.profiles WHERE phone = phone_to_check);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -1,19 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { PhoneShell, ScreenHeader } from "@/components/PhoneShell";
-import { 
-  Plus, Calendar, Search, Mic, MicOff, Clock, Sparkles, 
-  Trash2, X, ChevronRight, ShoppingCart, Info, Flame, ChevronLeft,
-  Image, SlidersHorizontal, Copy
+import {
+  Plus,
+  Calendar,
+  Search,
+  Mic,
+  MicOff,
+  Clock,
+  Sparkles,
+  Trash2,
+  X,
+  ChevronRight,
+  ShoppingCart,
+  Info,
+  Flame,
+  ChevronLeft,
+  Image,
+  SlidersHorizontal,
+  Copy,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { 
-  useRecipes, 
-  useMealPlans, 
-  useCreateRecipe, 
-  useAddMealPlan, 
-  useDeleteMealPlan 
+import {
+  useRecipes,
+  useMealPlans,
+  useCreateRecipe,
+  useAddMealPlan,
+  useDeleteMealPlan,
 } from "@/hooks/useCulinary";
 import { supabase } from "@/lib/supabase";
 import { STATIC_AI_ANALYSIS } from "@/lib/recipeData";
@@ -34,7 +48,7 @@ function RecipesPage() {
   const qc = useQueryClient();
   const { data: recipes = [], isLoading: loadingRecipes } = useRecipes();
   const { data: mealPlans = [], isLoading: loadingMealPlans } = useMealPlans();
-  
+
   const createRecipeMutation = useCreateRecipe();
   const addMealPlanMutation = useAddMealPlan();
   const deleteMealPlanMutation = useDeleteMealPlan();
@@ -69,20 +83,21 @@ function RecipesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Selected date for planner
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
   // Repeat recipes list to ensure marquee is sufficiently populated for smooth infinite scroll on mobile
-  const marqueeRecipes = recipes.length > 0 
-    ? Array.from({ length: Math.ceil(12 / recipes.length) }, () => recipes).flat().slice(0, 12)
-    : [];
-  
+  const marqueeRecipes =
+    recipes.length > 0
+      ? Array.from({ length: Math.ceil(12 / recipes.length) }, () => recipes)
+          .flat()
+          .slice(0, 12)
+      : [];
+
   // Modals state
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showAddRecipeModal, setShowAddRecipeModal] = useState(false);
   const [showScheduleDropdownId, setShowScheduleDropdownId] = useState<string | null>(null);
-  
+
   // AI analysis state for the detail modal
   const [analyzingRecipeId, setAnalyzingRecipeId] = useState<string | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
@@ -90,7 +105,7 @@ function RecipesPage() {
   // Copy & Clear Planner Day States
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [copyTargetDate, setCopyTargetDate] = useState<string>(
-    new Date(Date.now() + 86400000).toISOString().split("T")[0]
+    new Date(Date.now() + 86400000).toISOString().split("T")[0],
   );
   const [isClearingDay, setIsClearingDay] = useState(false);
   const [isCopyingDay, setIsCopyingDay] = useState(false);
@@ -109,9 +124,7 @@ function RecipesPage() {
   const [newFat, setNewFat] = useState("8g");
   const [newCarbs, setNewCarbs] = useState("30g");
   const [newImage, setNewImage] = useState("");
-  const [ingredients, setIngredients] = useState<Ingredient[]>([
-    { id: "1", name: "", qty: 100 }
-  ]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([{ id: "1", name: "", qty: 100 }]);
   const [instructions, setInstructions] = useState<string[]>([""]);
 
   // Calculate Monday - Sunday for the selected date's week
@@ -123,7 +136,7 @@ function RecipesPage() {
     const current = new Date(
       parseInt(parts[0], 10),
       parseInt(parts[1], 10) - 1,
-      parseInt(parts[2], 10)
+      parseInt(parts[2], 10),
     );
     const dayOfWeek = current.getDay(); // 0 is Sunday, 1 is Monday
     // Calculate Monday
@@ -142,7 +155,8 @@ function RecipesPage() {
 
   // Voice Search initialization
   useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       const rec = new SpeechRecognition();
       rec.continuous = false;
@@ -174,48 +188,53 @@ function RecipesPage() {
   };
 
   // Filter Recipes
-  const filteredRecipes = recipes.filter(r => {
-    const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          r.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || 
-                            r.category.toLowerCase() === selectedCategory.toLowerCase() ||
-                            (selectedCategory === "Indian Favorites" && r.category.toLowerCase() === "indian") ||
-                            (selectedCategory === "Global Favorites" && !["indian"].includes(r.category.toLowerCase()));
-    
+  const filteredRecipes = recipes.filter((r) => {
+    const matchesSearch =
+      r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "All" ||
+      r.category.toLowerCase() === selectedCategory.toLowerCase() ||
+      (selectedCategory === "Indian Favorites" && r.category.toLowerCase() === "indian") ||
+      (selectedCategory === "Global Favorites" && !["indian"].includes(r.category.toLowerCase()));
+
     let matchesCalories = true;
     if (maxCaloriesFilter !== null) {
       const kcal = parseInt(r.calories) || 0;
       matchesCalories = kcal <= maxCaloriesFilter;
     }
-    
+
     let matchesTime = true;
     if (maxTimeFilter !== null) {
       const mins = parseInt(r.time) || 0;
       matchesTime = mins <= maxTimeFilter;
     }
-    
+
     return matchesSearch && matchesCategory && matchesCalories && matchesTime;
   });
 
   // Helper for meal plan filtering
-  const dailyPlans = mealPlans.filter(p => p.plannedDate === selectedDate);
+  const dailyPlans = mealPlans.filter((p) => p.plannedDate === selectedDate);
 
   // Calculate total macros for the selected date
-  const totalMacros = dailyPlans.reduce((acc, plan) => {
-    const r = plan.recipeDetails;
-    if (!r) return acc;
-    const cal = parseInt(r.calories) || 0;
-    const prot = parseInt(r.protein) || 0;
-    const fat = parseInt(r.fat) || 0;
-    const carbs = parseInt(r.carbs) || 0;
-    
-    return {
-      calories: acc.calories + cal,
-      protein: acc.protein + prot,
-      fat: acc.fat + fat,
-      carbs: acc.carbs + carbs
-    };
-  }, { calories: 0, protein: 0, fat: 0, carbs: 0 });
+  const totalMacros = dailyPlans.reduce(
+    (acc, plan) => {
+      const r = plan.recipeDetails;
+      if (!r) return acc;
+      const cal = parseInt(r.calories) || 0;
+      const prot = parseInt(r.protein) || 0;
+      const fat = parseInt(r.fat) || 0;
+      const carbs = parseInt(r.carbs) || 0;
+
+      return {
+        calories: acc.calories + cal,
+        protein: acc.protein + prot,
+        fat: acc.fat + fat,
+        carbs: acc.carbs + carbs,
+      };
+    },
+    { calories: 0, protein: 0, fat: 0, carbs: 0 },
+  );
 
   // Form Ingredient helpers
   const addIngredientField = () => {
@@ -266,8 +285,8 @@ function RecipesPage() {
       return;
     }
 
-    const filteredIngredients = ingredients.filter(i => i.name.trim() !== "");
-    const filteredInstructions = instructions.filter(i => i.trim() !== "");
+    const filteredIngredients = ingredients.filter((i) => i.name.trim() !== "");
+    const filteredInstructions = instructions.filter((i) => i.trim() !== "");
 
     await createRecipeMutation.mutateAsync({
       title: newTitle,
@@ -278,9 +297,11 @@ function RecipesPage() {
       protein: newProtein,
       fat: newFat,
       carbs: newCarbs,
-      image: newImage || "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60",
-      ingredients: filteredIngredients.map(i => ({ ...i, unit: i.unit || "g" })),
-      instructions: filteredInstructions
+      image:
+        newImage ||
+        "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60",
+      ingredients: filteredIngredients.map((i) => ({ ...i, unit: i.unit || "g" })),
+      instructions: filteredInstructions,
     });
 
     // Reset Form
@@ -301,7 +322,7 @@ function RecipesPage() {
   // Cart Integrator Logic
   const addRecipeIngredientsToCart = (recipe: Recipe) => {
     const cart = JSON.parse(localStorage.getItem("pulsepeak_cart") || "[]");
-    recipe.ingredients.forEach(ing => {
+    recipe.ingredients.forEach((ing) => {
       const existing = cart.find((item: any) => item.name.toLowerCase() === ing.name.toLowerCase());
       if (existing) {
         existing.qty += ing.qty;
@@ -310,7 +331,9 @@ function RecipesPage() {
       }
     });
     localStorage.setItem("pulsepeak_cart", JSON.stringify(cart));
-    toast.success(`Added ${recipe.ingredients.length} ingredients from "${recipe.title}" to cart! 🛒`);
+    toast.success(
+      `Added ${recipe.ingredients.length} ingredients from "${recipe.title}" to cart! 🛒`,
+    );
   };
 
   const addAllPlannedToCart = () => {
@@ -320,9 +343,11 @@ function RecipesPage() {
     }
     const cart = JSON.parse(localStorage.getItem("pulsepeak_cart") || "[]");
     let totalAdded = 0;
-    dailyPlans.forEach(plan => {
-      plan.recipeDetails.ingredients.forEach(ing => {
-        const existing = cart.find((item: any) => item.name.toLowerCase() === ing.name.toLowerCase());
+    dailyPlans.forEach((plan) => {
+      plan.recipeDetails.ingredients.forEach((ing) => {
+        const existing = cart.find(
+          (item: any) => item.name.toLowerCase() === ing.name.toLowerCase(),
+        );
         if (existing) {
           existing.qty += ing.qty;
         } else {
@@ -343,7 +368,9 @@ function RecipesPage() {
     }
     setIsClearingDay(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         // Guest mode
         const guestPlans = JSON.parse(localStorage.getItem("guest_meal_plans") || "[]");
@@ -380,22 +407,24 @@ function RecipesPage() {
     }
     setIsCopyingDay(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         // Guest mode
         const guestPlans = JSON.parse(localStorage.getItem("guest_meal_plans") || "[]");
         const newPlans = dailyPlans.map((p: any) => ({
           id: crypto.randomUUID(),
           recipeId: p.recipeId,
-          plannedDate: copyTargetDate
+          plannedDate: copyTargetDate,
         }));
         localStorage.setItem("guest_meal_plans", JSON.stringify([...guestPlans, ...newPlans]));
       } else {
         // Authenticated user: bulk copy
-        const plansToCopy = dailyPlans.map(p => ({
+        const plansToCopy = dailyPlans.map((p) => ({
           user_id: user.id,
           recipe_id: p.recipeId,
-          planned_date: copyTargetDate
+          planned_date: copyTargetDate,
         }));
         const { error } = await supabase.from("meal_plans").insert(plansToCopy);
         if (error) throw error;
@@ -435,7 +464,7 @@ function RecipesPage() {
             return `Sauté the ${recipe.ingredients[0].qty}g of ${recipe.ingredients[0].name} in the pan.`;
           }
           return step;
-        })
+        }),
       };
       setAiAnalysis(mockResult);
       setAnalyzingRecipeId(null);
@@ -459,16 +488,19 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: "application/json" }
-          })
-        }
+            generationConfig: { responseMimeType: "application/json" },
+          }),
+        },
       );
 
       const data = await response.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) {
         // Strip markdown backticks
-        const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        const cleanJson = text
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
         setAiAnalysis(JSON.parse(cleanJson));
         toast.success("Successfully analyzed prep details using Gemini AI! ✨");
       } else {
@@ -480,7 +512,7 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
       setAiAnalysis({
         water: "2 cups",
         time: recipe.time,
-        steps: recipe.instructions
+        steps: recipe.instructions,
       });
     } finally {
       setAnalyzingRecipeId(null);
@@ -490,7 +522,9 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
   return (
     <PhoneShell>
       {/* Inline styles for custom animations */}
-      <style dangerouslySetInnerHTML={{__html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes marquee {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
@@ -500,28 +534,25 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
           width: max-content;
           animation: marquee 25s linear infinite;
         }
-      `}} />
+      `,
+        }}
+      />
 
       {activeTab === "planner" && (
-        <ScreenHeader 
-          title="Meal Planner" 
-          subtitle="Weekly Schedule & Plans" 
-        />
+        <ScreenHeader title="Meal Planner" subtitle="Weekly Schedule & Plans" />
       )}
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-28">
-        
         {/* Tab 1: Chef's Corner (Recipes Database) */}
         {activeTab === "corner" && (
           <div className="space-y-4">
-            
             {/* Pizza Banner at the top above the search bar */}
             <div className="rounded-3xl overflow-hidden mb-4 border border-border/70 bg-card shadow-sm">
-              <img 
-                src="/chef_corner_banner.jpg" 
-                alt="Chef's Corner Banner" 
-                className="w-full h-auto object-cover" 
+              <img
+                src="/chef_corner_banner.jpg"
+                alt="Chef's Corner Banner"
+                className="w-full h-auto object-cover"
               />
             </div>
 
@@ -538,7 +569,7 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                 />
                 <div className="absolute right-3.5 top-2.5 flex items-center gap-1.5">
                   {searchQuery && (
-                    <button 
+                    <button
                       onClick={() => setSearchQuery("")}
                       className="text-muted-foreground hover:text-foreground p-1 animate-in fade-in zoom-in-75 duration-100"
                     >
@@ -548,23 +579,27 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   <button
                     onClick={handleVoiceSearch}
                     className={`p-1 rounded-full transition active:scale-95 ${
-                      isListening 
-                        ? "text-red-500 animate-pulse" 
+                      isListening
+                        ? "text-red-500 animate-pulse"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                     title="Voice Search"
                   >
-                    {isListening ? <MicOff className="h-4.5 w-4.5" /> : <Mic className="h-4.5 w-4.5" />}
+                    {isListening ? (
+                      <MicOff className="h-4.5 w-4.5" />
+                    ) : (
+                      <Mic className="h-4.5 w-4.5" />
+                    )}
                   </button>
                 </div>
               </div>
-              
+
               {/* Filter Button */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`p-3 rounded-full border transition active:scale-95 ${
                   showFilters || maxCaloriesFilter !== null || maxTimeFilter !== null
-                    ? "bg-[#007000]/10 border-[#007000]/30 text-[#007000]" 
+                    ? "bg-[#007000]/10 border-[#007000]/30 text-[#007000]"
                     : "bg-card border-border hover:bg-muted text-muted-foreground"
                 }`}
                 title="Filter Options"
@@ -579,7 +614,7 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-foreground">Advanced Filters</h4>
                   {(maxCaloriesFilter !== null || maxTimeFilter !== null) && (
-                    <button 
+                    <button
                       onClick={() => {
                         setMaxCaloriesFilter(null);
                         setMaxTimeFilter(null);
@@ -590,19 +625,23 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                     </button>
                   )}
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3.5">
                   {/* Calorie Filter */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Max Calories</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                      Max Calories
+                    </label>
                     <div className="flex flex-wrap gap-1">
                       {[300, 400, 500].map((cal) => (
                         <button
                           key={cal}
-                          onClick={() => setMaxCaloriesFilter(maxCaloriesFilter === cal ? null : cal)}
+                          onClick={() =>
+                            setMaxCaloriesFilter(maxCaloriesFilter === cal ? null : cal)
+                          }
                           className={`text-[9px] font-bold px-2.5 py-1 rounded-md border transition ${
-                            maxCaloriesFilter === cal 
-                              ? "bg-[#007000] border-[#007000] text-white" 
+                            maxCaloriesFilter === cal
+                              ? "bg-[#007000] border-[#007000] text-white"
                               : "bg-muted border-border text-muted-foreground hover:text-foreground"
                           }`}
                         >
@@ -614,15 +653,17 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
 
                   {/* Cook Time Filter */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Max Prep Time</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                      Max Prep Time
+                    </label>
                     <div className="flex flex-wrap gap-1">
                       {[15, 30, 45].map((mins) => (
                         <button
                           key={mins}
                           onClick={() => setMaxTimeFilter(maxTimeFilter === mins ? null : mins)}
                           className={`text-[9px] font-bold px-2.5 py-1 rounded-md border transition ${
-                            maxTimeFilter === mins 
-                              ? "bg-[#007000] border-[#007000] text-white" 
+                            maxTimeFilter === mins
+                              ? "bg-[#007000] border-[#007000] text-white"
                               : "bg-muted border-border text-muted-foreground hover:text-foreground"
                           }`}
                         >
@@ -634,15 +675,15 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                 </div>
               </div>
             )}
-                 {/* Category Pills */}
+            {/* Category Pills */}
             <div className="flex gap-1.5 overflow-x-auto pb-1 mt-1 scrollbar-none">
               {["All", "Breakfast", "Lunch", "Dinner", "Indian Favorites"].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
                   className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold border transition duration-200 active:scale-95 ${
-                    selectedCategory === cat 
-                      ? "bg-[#007000] text-white border-[#007000]" 
+                    selectedCategory === cat
+                      ? "bg-[#007000] text-white border-[#007000]"
                       : "bg-card border-border hover:bg-muted text-muted-foreground"
                   }`}
                 >
@@ -658,20 +699,20 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   Trending Recipes
                 </h3>
               </div>
-              <div 
+              <div
                 className="relative w-full overflow-hidden rounded-2xl bg-muted/40 p-2 cursor-pointer"
                 onClick={() => {
                   setIsMarqueePaused(false);
                 }}
               >
-                <div 
+                <div
                   className={`animate-marquee gap-3 flex ${isMarqueePaused ? "[animation-play-state:paused]" : "hover:[animation-play-state:paused]"}`}
                   onMouseEnter={() => setIsMarqueePaused(true)}
                   onMouseLeave={() => setIsMarqueePaused(false)}
                 >
                   {/* Set 1 */}
                   {marqueeRecipes.map((recipe, idx) => (
-                    <div 
+                    <div
                       key={`marquee-1-${recipe.id}-${idx}`}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -680,19 +721,23 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                       }}
                       className="relative w-28 h-20 rounded-xl overflow-hidden cursor-pointer group shadow-sm flex-shrink-0 border border-border"
                     >
-                      <img 
-                        src={recipe.image || "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60"} 
-                        alt={recipe.title} 
+                      <img
+                        src={
+                          recipe.image ||
+                          "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60"
+                        }
+                        alt={recipe.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         onError={(e) => {
-                          e.currentTarget.src = "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
+                          e.currentTarget.src =
+                            "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
                         }}
                       />
                     </div>
                   ))}
                   {/* Set 2 (Duplicates) */}
                   {marqueeRecipes.map((recipe, idx) => (
-                    <div 
+                    <div
                       key={`marquee-2-${recipe.id}-${idx}`}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -701,12 +746,16 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                       }}
                       className="relative w-28 h-20 rounded-xl overflow-hidden cursor-pointer group shadow-sm flex-shrink-0 border border-border"
                     >
-                      <img 
-                        src={recipe.image || "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60"} 
-                        alt={recipe.title} 
+                      <img
+                        src={
+                          recipe.image ||
+                          "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60"
+                        }
+                        alt={recipe.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         onError={(e) => {
-                          e.currentTarget.src = "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
+                          e.currentTarget.src =
+                            "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
                         }}
                       />
                     </div>
@@ -723,8 +772,8 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   {filteredRecipes.length} recipes found
                 </span>
               </h2>
-              
-              <button 
+
+              <button
                 onClick={() => setShowAddRecipeModal(true)}
                 className="flex items-center gap-1 text-[10px] font-bold text-white bg-[#007000] hover:opacity-90 active:scale-95 px-3 py-1.5 rounded-full transition shadow-md"
               >
@@ -745,7 +794,7 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
             ) : (
               <div className="grid grid-cols-2 gap-3.5">
                 {filteredRecipes.map((recipe) => (
-                  <div 
+                  <div
                     key={recipe.id}
                     onClick={() => {
                       setSelectedRecipe(recipe);
@@ -754,16 +803,20 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                     className="group rounded-3xl border border-border bg-card overflow-hidden shadow-card hover:border-[#007000]/40 transition duration-300 relative flex flex-col cursor-pointer"
                   >
                     <div className="relative aspect-[4/3.2] overflow-hidden bg-muted">
-                      <img 
-                        src={recipe.image || "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60"} 
-                        alt={recipe.title} 
+                      <img
+                        src={
+                          recipe.image ||
+                          "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60"
+                        }
+                        alt={recipe.title}
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
-                          e.currentTarget.src = "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
+                          e.currentTarget.src =
+                            "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
                         }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                      
+
                       {/* Category Badge */}
                       <span className="absolute top-2.5 left-2.5 bg-black/60 text-white font-bold text-[8px] px-2 py-0.5 rounded-md uppercase tracking-wider">
                         {recipe.category}
@@ -779,16 +832,18 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                           {recipe.calories} · {recipe.time}
                         </p>
                       </div>
-                      
+
                       <div className="flex items-center justify-between pt-1">
                         <span className="text-[8px] bg-emerald-500/10 text-emerald-600 font-bold px-1.5 py-0.5 rounded-md">
                           {recipe.ingredients.length} Items
                         </span>
                         {/* Schedule Button (Placed right down / bottom right of details) */}
-                        <button 
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setShowScheduleDropdownId(showScheduleDropdownId === recipe.id ? null : recipe.id);
+                            setShowScheduleDropdownId(
+                              showScheduleDropdownId === recipe.id ? null : recipe.id,
+                            );
                           }}
                           className="bg-muted hover:bg-[#007000]/10 p-1.5 rounded-lg text-muted-foreground hover:text-[#007000] active:scale-95 transition shadow-sm z-10"
                           title="Schedule Meal"
@@ -800,18 +855,23 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
 
                     {/* Schedule Date Dropdown overlay inside Card */}
                     {showScheduleDropdownId === recipe.id && (
-                      <div 
+                      <div
                         className="absolute inset-x-2 bottom-2 z-20 bg-card border border-border shadow-glow rounded-2xl p-2.5 flex flex-col gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-150"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <p className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold px-1">Select date:</p>
-                        <input 
-                          type="date" 
+                        <p className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold px-1">
+                          Select date:
+                        </p>
+                        <input
+                          type="date"
                           value={selectedDate}
                           onChange={async (e) => {
                             setSelectedDate(e.target.value);
                             setShowScheduleDropdownId(null);
-                            await addMealPlanMutation.mutateAsync({ recipeId: recipe.id, dateStr: e.target.value });
+                            await addMealPlanMutation.mutateAsync({
+                              recipeId: recipe.id,
+                              dateStr: e.target.value,
+                            });
                           }}
                           className="w-full text-[10px] bg-muted border border-border rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-[#007000]"
                         />
@@ -820,7 +880,10 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                             onClick={async () => {
                               setShowScheduleDropdownId(null);
                               const todayStr = new Date().toISOString().split("T")[0];
-                              await addMealPlanMutation.mutateAsync({ recipeId: recipe.id, dateStr: todayStr });
+                              await addMealPlanMutation.mutateAsync({
+                                recipeId: recipe.id,
+                                dateStr: todayStr,
+                              });
                             }}
                             className="py-1 text-[9px] font-bold text-white bg-[#007000] rounded-md active:scale-95 transition"
                           >
@@ -836,15 +899,15 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                       </div>
                     )}
                   </div>
-                ))}</div>
-                )}
+                ))}
               </div>
             )}
+          </div>
+        )}
 
         {/* Tab 2: Meal Planner */}
         {activeTab === "planner" && (
           <div className="space-y-5">
-            
             {/* Weekly Header Calendar Selector Card */}
             <div className="rounded-3xl border border-zinc-200/70 bg-card p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
@@ -855,7 +918,11 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                       Weekly Schedule
                     </h3>
                     <p className="text-[10px] text-muted-foreground font-semibold">
-                      {new Date(selectedDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {new Date(selectedDate).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </p>
                   </div>
                 </div>
@@ -866,7 +933,7 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   >
                     <span>Pick Date</span>
                   </button>
-                  <input 
+                  <input
                     ref={datePickerRef}
                     type="date"
                     value={selectedDate}
@@ -887,34 +954,34 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   const m = String(day.getMonth() + 1).padStart(2, "0");
                   const d = String(day.getDate()).padStart(2, "0");
                   const dateStr = `${y}-${m}-${d}`;
-                  
+
                   const isSelected = dateStr === selectedDate;
                   const todayObj = new Date();
                   const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
                   const isToday = dateStr === todayStr;
                   const dayNum = day.getDate();
-                  const weekdayName = day.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
+                  const weekdayName = day
+                    .toLocaleDateString("en-US", { weekday: "short" })
+                    .toUpperCase();
 
                   return (
                     <button
                       key={idx}
                       onClick={() => setSelectedDate(dateStr)}
                       className={`py-3.5 rounded-full text-center flex flex-col items-center justify-center transition duration-200 active:scale-95 relative ${
-                        isSelected 
-                          ? "bg-[#007000] text-white shadow-md font-bold scale-105 z-10" 
+                        isSelected
+                          ? "bg-[#007000] text-white shadow-md font-bold scale-105 z-10"
                           : "bg-white border border-zinc-150 text-foreground hover:bg-zinc-50 shadow-sm"
                       }`}
                       style={{ aspectRatio: "0.75" }}
                     >
-                      <span className={`text-[8px] tracking-wider ${isSelected ? "text-white/80" : "text-muted-foreground"} font-bold`}>
+                      <span
+                        className={`text-[8px] tracking-wider ${isSelected ? "text-white/80" : "text-muted-foreground"} font-bold`}
+                      >
                         {weekdayName}
                       </span>
-                      <span className="text-sm mt-1 font-display font-extrabold">
-                        {dayNum}
-                      </span>
-                      {isSelected && (
-                        <span className="h-1 w-1 rounded-full bg-white mt-1" />
-                      )}
+                      <span className="text-sm mt-1 font-display font-extrabold">{dayNum}</span>
+                      {isSelected && <span className="h-1 w-1 rounded-full bg-white mt-1" />}
                       {!isSelected && isToday && (
                         <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[#007000]" />
                       )}
@@ -926,7 +993,14 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
               {/* Center the text "Selected Day: May 19, 2026" directly below the weekday circles track */}
               <div className="text-center pt-1">
                 <span className="text-xs text-muted-foreground font-medium">
-                  Selected Day: <span className="font-bold text-foreground">{new Date(selectedDate.replace(/-/g, '/')).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                  Selected Day:{" "}
+                  <span className="font-bold text-foreground">
+                    {new Date(selectedDate.replace(/-/g, "/")).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
                 </span>
               </div>
             </div>
@@ -945,16 +1019,28 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                 </div>
                 <div className="grid grid-cols-3 gap-2.5">
                   <div className="rounded-2xl border border-border/40 bg-card py-2 px-1 text-center shadow-sm">
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block">Protein</span>
-                    <span className="text-xs font-extrabold text-[#007000] mt-0.5 block">{totalMacros.protein}g</span>
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block">
+                      Protein
+                    </span>
+                    <span className="text-xs font-extrabold text-[#007000] mt-0.5 block">
+                      {totalMacros.protein}g
+                    </span>
                   </div>
                   <div className="rounded-2xl border border-border/40 bg-card py-2 px-1 text-center shadow-sm">
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block">Carbs</span>
-                    <span className="text-xs font-extrabold text-amber-500 mt-0.5 block">{totalMacros.carbs}g</span>
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block">
+                      Carbs
+                    </span>
+                    <span className="text-xs font-extrabold text-amber-500 mt-0.5 block">
+                      {totalMacros.carbs}g
+                    </span>
                   </div>
                   <div className="rounded-2xl border border-border/40 bg-card py-2 px-1 text-center shadow-sm">
-                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block">Fats</span>
-                    <span className="text-xs font-extrabold text-red-500 mt-0.5 block">{totalMacros.fat}g</span>
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block">
+                      Fats
+                    </span>
+                    <span className="text-xs font-extrabold text-red-500 mt-0.5 block">
+                      {totalMacros.fat}g
+                    </span>
                   </div>
                 </div>
               </div>
@@ -966,7 +1052,11 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                 <h3 className="text-sm font-extrabold text-foreground flex items-center gap-1.5">
                   <span>Daily Schedule</span>
                   <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full font-semibold">
-                    {new Date(selectedDate.replace(/-/g, '/')).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                    {new Date(selectedDate.replace(/-/g, "/")).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </span>
                 </h3>
 
@@ -1009,8 +1099,10 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                 </div>
               ) : dailyPlans.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-border bg-card/45 py-12 text-center">
-                  <p className="text-xs text-muted-foreground">No dishes scheduled for this date.</p>
-                  <button 
+                  <p className="text-xs text-muted-foreground">
+                    No dishes scheduled for this date.
+                  </p>
+                  <button
                     onClick={() => setActiveTab("corner")}
                     className="mt-3 text-[11px] font-bold text-[#007000] hover:underline"
                   >
@@ -1022,7 +1114,7 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   {dailyPlans.map((plan) => {
                     const recipe = plan.recipeDetails;
                     return (
-                      <div 
+                      <div
                         key={plan.id}
                         onClick={() => {
                           setSelectedRecipe(recipe);
@@ -1033,18 +1125,23 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex gap-3">
                             <div className="h-14 w-14 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-                              <img 
-                                src={recipe.image} 
-                                alt={recipe.title} 
+                              <img
+                                src={recipe.image}
+                                alt={recipe.title}
                                 className="h-full w-full object-cover"
                                 onError={(e) => {
-                                  e.currentTarget.src = "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
+                                  e.currentTarget.src =
+                                    "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
                                 }}
                               />
                             </div>
                             <div>
-                              <p className="text-[10px] uppercase font-bold text-primary tracking-wider">{recipe.category}</p>
-                              <h4 className="text-xs font-bold text-foreground mt-0.5 capitalize leading-tight line-clamp-1">{recipe.title}</h4>
+                              <p className="text-[10px] uppercase font-bold text-primary tracking-wider">
+                                {recipe.category}
+                              </p>
+                              <h4 className="text-xs font-bold text-foreground mt-0.5 capitalize leading-tight line-clamp-1">
+                                {recipe.title}
+                              </h4>
                               <p className="text-[9px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
                                 <span>{recipe.time}</span>
                                 <span>·</span>
@@ -1087,30 +1184,31 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                 </div>
               )}
             </div>
-
           </div>
         )}
-
       </div>
 
       {/* Modal: Create Custom Recipe */}
       {showAddRecipeModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/45 backdrop-blur-sm p-0 sm:p-4" onClick={() => setShowAddRecipeModal(false)}>
-          <form 
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/45 backdrop-blur-sm p-0 sm:p-4"
+          onClick={() => setShowAddRecipeModal(false)}
+        >
+          <form
             onSubmit={handleCreateRecipe}
-            onClick={(e) => e.stopPropagation()} 
+            onClick={(e) => e.stopPropagation()}
             className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-card border border-border/80 shadow-glow p-5 flex flex-col max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200"
           >
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-muted block sm:hidden" />
-            
+
             <div className="flex items-center justify-between pb-3 border-b border-border/50">
               <h3 className="font-display text-base font-extrabold text-foreground flex items-center gap-1.5">
                 <Plus className="h-4.5 w-4.5 text-[#007000]" />
                 <span>Create Custom Recipe</span>
               </h3>
-              <button 
+              <button
                 type="button"
-                onClick={() => setShowAddRecipeModal(false)} 
+                onClick={() => setShowAddRecipeModal(false)}
                 className="rounded-xl border border-border bg-muted/40 p-1.5 text-muted-foreground hover:text-foreground active:scale-95 transition"
               >
                 <X className="h-4 w-4" />
@@ -1119,10 +1217,12 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
 
             <div className="space-y-3.5 mt-4">
               <div>
-                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Recipe Title</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Garlic Butter Paneer" 
+                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  Recipe Title
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Garlic Butter Paneer"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   className="w-full mt-1 px-3.5 py-2.5 rounded-xl border border-border bg-card text-xs focus:border-[#007000] focus:outline-none text-foreground"
@@ -1132,8 +1232,10 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Category</label>
-                  <select 
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    Category
+                  </label>
+                  <select
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="w-full mt-1 px-3.5 py-2.5 rounded-xl border border-border bg-card text-xs focus:border-[#007000] focus:outline-none text-foreground"
@@ -1148,10 +1250,12 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Time (minutes)</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 25 min" 
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    Time (minutes)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 25 min"
                     value={newTime}
                     onChange={(e) => setNewTime(e.target.value)}
                     className="w-full mt-1 px-3.5 py-2.5 rounded-xl border border-border bg-card text-xs focus:border-[#007000] focus:outline-none text-foreground"
@@ -1161,9 +1265,11 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Servings</label>
-                  <input 
-                    type="number" 
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    Servings
+                  </label>
+                  <input
+                    type="number"
                     value={newServes}
                     onChange={(e) => setNewServes(Number(e.target.value))}
                     className="w-full mt-1 px-3.5 py-2.5 rounded-xl border border-border bg-card text-xs focus:border-[#007000] focus:outline-none text-foreground"
@@ -1171,10 +1277,12 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Calories</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 350 kcal" 
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    Calories
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 350 kcal"
                     value={newCalories}
                     onChange={(e) => setNewCalories(e.target.value)}
                     className="w-full mt-1 px-3.5 py-2.5 rounded-xl border border-border bg-card text-xs focus:border-[#007000] focus:outline-none text-foreground"
@@ -1184,30 +1292,36 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
 
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Protein (g)</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 15g" 
+                  <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">
+                    Protein (g)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 15g"
                     value={newProtein}
                     onChange={(e) => setNewProtein(e.target.value)}
                     className="w-full mt-1 px-2.5 py-2 rounded-xl border border-border bg-card text-xs focus:border-[#007000] focus:outline-none text-foreground"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Fats (g)</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 12g" 
+                  <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">
+                    Fats (g)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 12g"
                     value={newFat}
                     onChange={(e) => setNewFat(e.target.value)}
                     className="w-full mt-1 px-2.5 py-2 rounded-xl border border-border bg-card text-xs focus:border-[#007000] focus:outline-none text-foreground"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">Carbs (g)</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. 40g" 
+                  <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">
+                    Carbs (g)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 40g"
                     value={newCarbs}
                     onChange={(e) => setNewCarbs(e.target.value)}
                     className="w-full mt-1 px-2.5 py-2 rounded-xl border border-border bg-card text-xs focus:border-[#007000] focus:outline-none text-foreground"
@@ -1216,19 +1330,21 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">Recipe Image</label>
-                <input 
-                  type="file" 
+                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                  Recipe Image
+                </label>
+                <input
+                  type="file"
                   ref={fileInputRef}
-                  accept="image/*" 
+                  accept="image/*"
                   onChange={handleImageChange}
                   className="hidden"
                 />
                 {newImage ? (
                   <div className="relative group rounded-xl overflow-hidden border border-border aspect-[16/9]">
-                    <img 
-                      src={newImage} 
-                      alt="Recipe Preview" 
+                    <img
+                      src={newImage}
+                      alt="Recipe Preview"
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200">
@@ -1249,7 +1365,9 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   >
                     <Image className="h-6 w-6 text-muted-foreground mb-1.5" />
                     <span className="text-xs font-medium text-foreground">Upload from Gallery</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">Supports PNG, JPG, WebP</span>
+                    <span className="text-[10px] text-muted-foreground mt-0.5">
+                      Supports PNG, JPG, WebP
+                    </span>
                   </button>
                 )}
               </div>
@@ -1257,9 +1375,11 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
               {/* Form Ingredients editor */}
               <div className="space-y-2 border-t border-border/40 pt-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Ingredients</span>
-                  <button 
-                    type="button" 
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    Ingredients
+                  </span>
+                  <button
+                    type="button"
                     onClick={addIngredientField}
                     className="text-[10px] font-bold text-[#007000] hover:underline"
                   >
@@ -1269,29 +1389,29 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                 <div className="space-y-2 max-h-[150px] overflow-y-auto pr-1">
                   {ingredients.map((ing, idx) => (
                     <div key={ing.id} className="flex gap-2 items-center">
-                      <input 
-                        type="text" 
-                        placeholder="Ingredient name" 
+                      <input
+                        type="text"
+                        placeholder="Ingredient name"
                         value={ing.name}
                         onChange={(e) => updateIngredientField(idx, "name", e.target.value)}
                         className="flex-1 px-2.5 py-2 rounded-xl border border-border bg-card text-xs focus:outline-none focus:border-[#007000] text-foreground"
                       />
-                      <input 
-                        type="number" 
-                        placeholder="Qty" 
+                      <input
+                        type="number"
+                        placeholder="Qty"
                         value={ing.qty}
                         onChange={(e) => updateIngredientField(idx, "qty", Number(e.target.value))}
                         className="w-16 px-2.5 py-2 rounded-xl border border-border bg-card text-xs focus:outline-none focus:border-[#007000] text-foreground"
                       />
-                      <input 
-                        type="text" 
-                        placeholder="Unit" 
+                      <input
+                        type="text"
+                        placeholder="Unit"
                         value={ing.unit || "g"}
                         onChange={(e) => updateIngredientField(idx, "unit", e.target.value)}
                         className="w-12 px-2.5 py-2 rounded-xl border border-border bg-card text-xs focus:outline-none focus:border-[#007000] text-foreground"
                       />
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => removeIngredientField(idx)}
                         className="text-red-500 hover:text-red-600 p-1.5"
                       >
@@ -1305,9 +1425,11 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
               {/* Form Instructions Steps Editor */}
               <div className="space-y-2 border-t border-border/40 pt-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Instructions Steps</span>
-                  <button 
-                    type="button" 
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    Instructions Steps
+                  </span>
+                  <button
+                    type="button"
                     onClick={addInstructionField}
                     className="text-[10px] font-bold text-[#007000] hover:underline"
                   >
@@ -1318,14 +1440,14 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   {instructions.map((step, idx) => (
                     <div key={idx} className="flex gap-2 items-start">
                       <span className="text-xs font-bold text-[#007000] mt-2.5">{idx + 1}.</span>
-                      <textarea 
+                      <textarea
                         placeholder={`Step ${idx + 1} details...`}
                         value={step}
                         onChange={(e) => updateInstructionField(idx, e.target.value)}
                         className="flex-1 px-2.5 py-2 rounded-xl border border-border bg-card text-xs focus:outline-none focus:border-[#007000] text-foreground resize-none h-12"
                       />
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => removeInstructionField(idx)}
                         className="text-red-500 hover:text-red-600 p-1.5 mt-1"
                       >
@@ -1350,27 +1472,40 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
 
       {/* Modal: Recipe Detail & AI Prep Viewer */}
       {selectedRecipe && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/45 backdrop-blur-sm p-0 sm:p-4" onClick={() => { setSelectedRecipe(null); setAiAnalysis(null); }}>
-          <div 
-            onClick={(e) => e.stopPropagation()} 
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/45 backdrop-blur-sm p-0 sm:p-4"
+          onClick={() => {
+            setSelectedRecipe(null);
+            setAiAnalysis(null);
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
             className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-card border border-border/80 shadow-glow flex flex-col max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200 text-foreground"
           >
             {/* Image Hero Frame at the very top (full bleed, no padding) */}
             <div className="w-full aspect-[4/3] sm:aspect-video overflow-hidden relative bg-muted flex-shrink-0">
-              <img 
-                src={selectedRecipe.image || "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60"} 
-                alt={selectedRecipe.title} 
-                className="absolute inset-0 h-full w-full object-cover" 
+              <img
+                src={
+                  selectedRecipe.image ||
+                  "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60"
+                }
+                alt={selectedRecipe.title}
+                className="absolute inset-0 h-full w-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
+                  e.currentTarget.src =
+                    "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&auto=format&fit=crop&q=60";
                 }}
               />
               {/* Dark Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent" />
 
               {/* Close Button as a modern translucent circle button in the top-right corner of image */}
-              <button 
-                onClick={() => { setSelectedRecipe(null); setAiAnalysis(null); }} 
+              <button
+                onClick={() => {
+                  setSelectedRecipe(null);
+                  setAiAnalysis(null);
+                }}
                 className="absolute top-4 right-4 rounded-full bg-black/55 backdrop-blur-md p-2 text-white hover:bg-black/75 hover:scale-105 active:scale-95 transition z-10"
               >
                 <X className="h-4 w-4" />
@@ -1389,7 +1524,6 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
 
             {/* Remaining details in a padded container */}
             <div className="p-5 flex-1 space-y-4">
-              
               {/* Quick Stats Grid */}
               <div className="grid grid-cols-4 gap-2 text-center text-[10px] border-b border-border/50 pb-3">
                 <div className="rounded-xl border border-border bg-muted/30 py-2">
@@ -1409,7 +1543,7 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   <p className="font-extrabold text-[#007000] mt-0.5">{selectedRecipe.protein}</p>
                 </div>
               </div>
-              
+
               {/* Ingredients List */}
               <div>
                 <p className="text-xs font-extrabold text-foreground mb-2 flex items-center gap-1.5">
@@ -1418,9 +1552,14 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                 </p>
                 <ul className="space-y-1.5">
                   {selectedRecipe.ingredients.map((ing, idx) => (
-                    <li key={idx} className="flex justify-between items-center text-xs text-muted-foreground py-1 border-b border-border/30 last:border-0">
+                    <li
+                      key={idx}
+                      className="flex justify-between items-center text-xs text-muted-foreground py-1 border-b border-border/30 last:border-0"
+                    >
                       <span className="capitalize">{ing.name}</span>
-                      <span className="font-bold text-foreground">{ing.qty} {ing.unit || "g"}</span>
+                      <span className="font-bold text-foreground">
+                        {ing.qty} {ing.unit || "g"}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -1434,7 +1573,10 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                 </p>
                 <div className="space-y-2">
                   {selectedRecipe.instructions.map((step, idx) => (
-                    <div key={idx} className="flex gap-2 text-xs text-muted-foreground leading-relaxed">
+                    <div
+                      key={idx}
+                      className="flex gap-2 text-xs text-muted-foreground leading-relaxed"
+                    >
                       <span className="font-bold text-[#007000] min-w-[15px]">{idx + 1}.</span>
                       <span>{step}</span>
                     </div>
@@ -1447,7 +1589,9 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                 <div className="flex justify-between items-center mb-3">
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="h-4.5 w-4.5 text-amber-500 animate-pulse" />
-                    <span className="text-xs font-extrabold text-foreground">Gemini AI Culinary Helper</span>
+                    <span className="text-xs font-extrabold text-foreground">
+                      Gemini AI Culinary Helper
+                    </span>
                   </div>
                   {!aiAnalysis && !analyzingRecipeId && (
                     <button
@@ -1476,9 +1620,14 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                       </div>
                     </div>
                     <div className="border-t border-border/30 pt-2 space-y-2">
-                      <p className="text-[10px] uppercase font-bold text-[#007000] tracking-wider">Inline Qty Cooking Steps:</p>
+                      <p className="text-[10px] uppercase font-bold text-[#007000] tracking-wider">
+                        Inline Qty Cooking Steps:
+                      </p>
                       {aiAnalysis.steps.map((step: string, idx: number) => (
-                        <div key={idx} className="flex gap-2 text-[11px] text-muted-foreground leading-relaxed">
+                        <div
+                          key={idx}
+                          className="flex gap-2 text-[11px] text-muted-foreground leading-relaxed"
+                        >
                           <span className="font-bold text-amber-500">{idx + 1}.</span>
                           <span>{step}</span>
                         </div>
@@ -1487,7 +1636,8 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
                   </div>
                 ) : (
                   <p className="text-[11px] text-muted-foreground">
-                    Click analyze to estimate cooking water levels and inline quantities using Google Gemini.
+                    Click analyze to estimate cooking water levels and inline quantities using
+                    Google Gemini.
                   </p>
                 )}
               </div>
@@ -1499,20 +1649,23 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
       )}
       {/* Modal: Copy Meal Plan to Another Date */}
       {showCopyModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/45 backdrop-blur-sm p-0 sm:p-4" onClick={() => setShowCopyModal(false)}>
-          <div 
-            onClick={(e) => e.stopPropagation()} 
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-foreground/45 backdrop-blur-sm p-0 sm:p-4"
+          onClick={() => setShowCopyModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-card border border-border/80 shadow-glow p-5 flex flex-col animate-in slide-in-from-bottom duration-200"
           >
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-muted block sm:hidden" />
-            
+
             <div className="flex items-center justify-between pb-3 border-b border-border/50">
               <h3 className="font-display text-sm font-extrabold text-foreground flex items-center gap-1.5">
                 <Copy className="h-4 w-4 text-[#007000]" />
                 <span>Copy Schedule</span>
               </h3>
-              <button 
-                onClick={() => setShowCopyModal(false)} 
+              <button
+                onClick={() => setShowCopyModal(false)}
                 className="rounded-xl border border-border bg-muted/40 p-1.5 text-muted-foreground hover:text-foreground active:scale-95 transition"
               >
                 <X className="h-4 w-4" />
@@ -1521,13 +1674,22 @@ Return ONLY a valid JSON object with these keys: "water", "time", "steps" (an ar
 
             <div className="space-y-4 mt-4">
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Copy all scheduled dishes from <span className="font-bold text-foreground">{new Date(selectedDate.replace(/-/g, '/')).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span> to your chosen date below.
+                Copy all scheduled dishes from{" "}
+                <span className="font-bold text-foreground">
+                  {new Date(selectedDate.replace(/-/g, "/")).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>{" "}
+                to your chosen date below.
               </p>
 
               <div>
-                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1.5">Target Date</label>
-                <input 
-                  type="date" 
+                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1.5">
+                  Target Date
+                </label>
+                <input
+                  type="date"
                   value={copyTargetDate}
                   onChange={(e) => setCopyTargetDate(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-card text-xs focus:border-[#007000] focus:outline-none text-foreground"

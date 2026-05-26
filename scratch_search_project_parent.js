@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
-const parentDir = 'c:\\Users\\User\\OneDrive\\Desktop\\project';
+const parentDir = "c:\\Users\\User\\OneDrive\\Desktop\\project";
 
 function walk(dir, callback) {
   let files;
@@ -10,7 +10,7 @@ function walk(dir, callback) {
   } catch (e) {
     return;
   }
-  files.forEach(file => {
+  files.forEach((file) => {
     const fullPath = path.join(dir, file);
     let stat;
     try {
@@ -19,7 +19,13 @@ function walk(dir, callback) {
       return;
     }
     if (stat.isDirectory()) {
-      if (file !== 'node_modules' && file !== '.git' && file !== '.wrangler' && file !== '. Lovable' && file !== 'dist') {
+      if (
+        file !== "node_modules" &&
+        file !== ".git" &&
+        file !== ".wrangler" &&
+        file !== ". Lovable" &&
+        file !== "dist"
+      ) {
         walk(fullPath, callback);
       }
     } else {
@@ -28,14 +34,20 @@ function walk(dir, callback) {
   });
 }
 
-console.log('Searching parent folder...');
+console.log("Searching parent folder...");
 walk(parentDir, (filePath) => {
-  if (filePath.endsWith('.tsx') || filePath.endsWith('.ts') || filePath.endsWith('.txt') || filePath.endsWith('.json') || filePath.endsWith('.md')) {
+  if (
+    filePath.endsWith(".tsx") ||
+    filePath.endsWith(".ts") ||
+    filePath.endsWith(".txt") ||
+    filePath.endsWith(".json") ||
+    filePath.endsWith(".md")
+  ) {
     try {
-      const content = fs.readFileSync(filePath, 'utf8');
-      if (content.includes('BHINDI FRY') && content.includes('PONGAL')) {
+      const content = fs.readFileSync(filePath, "utf8");
+      if (content.includes("BHINDI FRY") && content.includes("PONGAL")) {
         console.log(`Found: ${filePath} (len: ${content.length})`);
       }
-    } catch(e) {}
+    } catch (e) {}
   }
 });

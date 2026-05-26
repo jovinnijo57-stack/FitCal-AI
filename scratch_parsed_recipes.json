@@ -2,12 +2,7 @@
   {
     "title": "IDLI",
     "emoji": "🥣",
-    "products": [
-      "Rice",
-      "Urad dal",
-      "Salt",
-      "Water"
-    ],
+    "products": ["Rice", "Urad dal", "Salt", "Water"],
     "preparation": [
       "Take 2 cups rice and wash well",
       "Take 1 cup urad dal and wash separately",
@@ -23,13 +18,7 @@
   {
     "title": "DOSA",
     "emoji": "🥞",
-    "products": [
-      "Rice",
-      "Urad dal",
-      "Fenugreek seeds",
-      "Salt",
-      "Oil"
-    ],
+    "products": ["Rice", "Urad dal", "Fenugreek seeds", "Salt", "Oil"],
     "preparation": [
       "Soak 3 cups rice, 1 cup urad dal, and 1 tsp fenugreek for 5 hours",
       "Grind to a very smooth, pourable batter",
@@ -42,13 +31,7 @@
   {
     "title": "APPAM",
     "emoji": "🥘",
-    "products": [
-      "Raw rice",
-      "Coconut",
-      "Yeast",
-      "Sugar",
-      "Salt"
-    ],
+    "products": ["Raw rice", "Coconut", "Yeast", "Sugar", "Salt"],
     "preparation": [
       "Soak 2 cups raw rice for 4 hours",
       "Grind rice with 1 cup grated coconut and 1/2 cup cooked rice",
@@ -61,12 +44,7 @@
   {
     "title": "PUTTU",
     "emoji": "🍚",
-    "products": [
-      "Rice flour",
-      "Grated coconut",
-      "Salt",
-      "Water"
-    ],
+    "products": ["Rice flour", "Grated coconut", "Salt", "Water"],
     "preparation": [
       "Mix 2 cups rice flour with 1/2 tsp salt",
       "Sprinkle 3/4 cup water gradually while mixing",
@@ -78,13 +56,7 @@
   {
     "title": "UPMA",
     "emoji": "🥣",
-    "products": [
-      "Rava (Semolina)",
-      "Onion",
-      "Mustard seeds",
-      "Ghee",
-      "Veggies"
-    ],
+    "products": ["Rava (Semolina)", "Onion", "Mustard seeds", "Ghee", "Veggies"],
     "preparation": [
       "Roast 1 cup rava until fragrant; set aside",
       "Sauté 1 tsp mustard seeds, 1 chopped onion, and chilies in 2 tbsp ghee",
@@ -96,23 +68,13 @@
   {
     "title": "PONGAL",
     "emoji": "🍚",
-    "products": [
-      "Raw rice",
-      "Moong dal",
-      "Black pepper",
-      "Cum"
-    ],
+    "products": ["Raw rice", "Moong dal", "Black pepper", "Cum"],
     "preparation": []
   },
   {
     "title": "CHANA MASALA",
     "emoji": "🥣",
-    "products": [
-      "Chickpeas (Chana)",
-      "Onion",
-      "Tomato",
-      "Chana masala powder"
-    ],
+    "products": ["Chickpeas (Chana)", "Onion", "Tomato", "Chana masala powder"],
     "preparation": [
       "Soak 1 cup chickpeas overnight and pressure cook until soft",
       "Sauté 1 large onion and 2 tomatoes into a soft paste",
@@ -124,12 +86,7 @@
   {
     "title": "RAJMA",
     "emoji": "🥣",
-    "products": [
-      "Kidney beans (Rajma)",
-      "Onion-Tomato puree",
-      "Ginger",
-      "Ghee"
-    ],
+    "products": ["Kidney beans (Rajma)", "Onion-Tomato puree", "Ginger", "Ghee"],
     "preparation": [
       "Soak 1 cup rajma for 8 hours and pressure cook well",
       "Sauté puree with ginger in 1 tbsp ghee until oil separates",
@@ -141,13 +98,7 @@
   {
     "title": "VEG KURMA",
     "emoji": "🥘",
-    "products": [
-      "Mixed veggies",
-      "Coconut",
-      "Cashews",
-      "Poppy seeds",
-      "Spices"
-    ],
+    "products": ["Mixed veggies", "Coconut", "Cashews", "Poppy seeds", "Spices"],
     "preparation": [
       "Grind 1/2 cup coconut and 5 cashews into a smooth paste",
       "Boil 2 cups mixed veggies (carrots, beans, peas)",
@@ -159,13 +110,7 @@
   {
     "title": "MUSHROOM CURRY",
     "emoji": "🍄",
-    "products": [
-      "Mushrooms",
-      "Onion",
-      "Tomato",
-      "Garlic",
-      "Cream"
-    ],
+    "products": ["Mushrooms", "Onion", "Tomato", "Garlic", "Cream"],
     "preparation": [
       "Sauté 250g sliced mushrooms until they release water",
       "Add 1 chopped onion and 1 tsp garlic paste",
@@ -177,12 +122,7 @@
   {
     "title": "BHINDI FRY",
     "emoji": "🥘",
-    "products": [
-      "Okra (Bhindi)",
-      "Cumin",
-      "Turmeric",
-      "Amchur (Mango powder)"
-    ],
+    "products": ["Okra (Bhindi)", "Cumin", "Turmeric", "Amchur (Mango powder)"],
     "preparation": [
       "Wash and dry 250g okra completely; slice into rounds",
       "Heat 2 tbsp oil and sauté okra on medium-high",

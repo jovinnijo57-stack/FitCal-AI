@@ -91,7 +91,12 @@
   --fats: oklch(0.7 0.13 280);
   --water: oklch(0.7 0.14 220);
 
-  --gradient-hero: linear-gradient(135deg, oklch(0.32 0.08 165) 0%, oklch(0.5 0.12 165) 60%, oklch(0.74 0.12 85) 130%);
+  --gradient-hero: linear-gradient(
+    135deg,
+    oklch(0.32 0.08 165) 0%,
+    oklch(0.5 0.12 165) 60%,
+    oklch(0.74 0.12 85) 130%
+  );
   --gradient-card: linear-gradient(160deg, oklch(1 0 0) 0%, oklch(0.97 0.02 95) 100%);
   --gradient-gold: linear-gradient(135deg, oklch(0.78 0.13 85), oklch(0.62 0.15 75));
   --shadow-glow: 0 20px 60px -20px color-mix(in oklab, oklch(0.42 0.09 165) 40%, transparent);
@@ -131,23 +136,55 @@
   --input: oklch(1 0 0 / 0.12);
   --ring: oklch(0.7 0.15 165);
 
-  --gradient-hero: linear-gradient(135deg, oklch(0.22 0.06 165) 0%, oklch(0.34 0.1 165) 60%, oklch(0.62 0.13 85) 130%);
+  --gradient-hero: linear-gradient(
+    135deg,
+    oklch(0.22 0.06 165) 0%,
+    oklch(0.34 0.1 165) 60%,
+    oklch(0.62 0.13 85) 130%
+  );
   --gradient-card: linear-gradient(160deg, oklch(0.24 0.045 165) 0%, oklch(0.2 0.035 165) 100%);
   --shadow-glow: 0 20px 60px -20px color-mix(in oklab, oklch(0.7 0.15 165) 35%, transparent);
   --shadow-card: 0 10px 30px -15px oklch(0 0 0 / 0.5);
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html, body { background-color: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
-  h1, h2, h3, h4, h5 { font-family: var(--font-display); letter-spacing: -0.02em; }
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
 }
 
 @layer utilities {
-  .bg-gradient-hero { background-image: var(--gradient-hero); }
-  .bg-gradient-card { background-image: var(--gradient-card); }
-  .bg-gradient-gold { background-image: var(--gradient-gold); }
-  .shadow-glow { box-shadow: var(--shadow-glow); }
-  .shadow-card { box-shadow: var(--shadow-card); }
-  .text-balance { text-wrap: balance; }
+  .bg-gradient-hero {
+    background-image: var(--gradient-hero);
+  }
+  .bg-gradient-card {
+    background-image: var(--gradient-card);
+  }
+  .bg-gradient-gold {
+    background-image: var(--gradient-gold);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
 }

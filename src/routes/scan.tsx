@@ -11,7 +11,7 @@ export const Route = createFileRoute("/scan")({
 
 function Scan() {
   const [scanning, setScanning] = useState(true);
-  const [found, setFound] = useState<typeof FOODS[number] | null>(null);
+  const [found, setFound] = useState<(typeof FOODS)[number] | null>(null);
   const { addMeal } = useStore();
   const nav = useNavigate();
 
@@ -27,12 +27,18 @@ function Scan() {
   return (
     <div className="min-h-dvh bg-foreground text-primary-foreground">
       <div className="mx-auto w-full max-w-md px-5 pt-6">
-        <Link to="/add" search={{ meal: "Snacks" }} className="inline-flex items-center gap-1 text-sm text-primary-foreground/80">
+        <Link
+          to="/add"
+          search={{ meal: "Snacks" }}
+          className="inline-flex items-center gap-1 text-sm text-primary-foreground/80"
+        >
           <ArrowLeft className="h-4 w-4" /> Cancel
         </Link>
 
         <h1 className="mt-6 font-display text-2xl font-bold">Scan barcode</h1>
-        <p className="mt-1 text-sm text-primary-foreground/70">Point your camera at any product barcode.</p>
+        <p className="mt-1 text-sm text-primary-foreground/70">
+          Point your camera at any product barcode.
+        </p>
 
         <div className="relative mt-8 aspect-[3/4] overflow-hidden rounded-3xl border border-white/15 bg-black/60">
           <div className="absolute inset-0 grid place-items-center">
@@ -54,12 +60,26 @@ function Scan() {
             <div className="rounded-3xl border border-white/15 bg-white/5 p-4 backdrop-blur">
               <p className="text-xs uppercase tracking-widest text-gold">Match found</p>
               <p className="mt-1 font-display text-lg font-bold">{found.name}</p>
-              <p className="text-xs text-primary-foreground/70">{found.brand ?? "Generic"} · {found.serving} · {found.kcal} kcal</p>
+              <p className="text-xs text-primary-foreground/70">
+                {found.brand ?? "Generic"} · {found.serving} · {found.kcal} kcal
+              </p>
               <div className="mt-4 flex gap-2">
-                <button onClick={() => { setScanning(true); setFound(null); }} className="flex-1 rounded-2xl border border-white/20 py-3 text-sm font-semibold">
+                <button
+                  onClick={() => {
+                    setScanning(true);
+                    setFound(null);
+                  }}
+                  className="flex-1 rounded-2xl border border-white/20 py-3 text-sm font-semibold"
+                >
                   Scan again
                 </button>
-                <button onClick={() => { addMeal("Snacks", found, 1); nav({ to: "/diary" }); }} className="flex-[2] rounded-2xl bg-gradient-gold py-3 font-display text-sm font-semibold text-gold-foreground">
+                <button
+                  onClick={() => {
+                    addMeal("Snacks", found, 1);
+                    nav({ to: "/diary" });
+                  }}
+                  className="flex-[2] rounded-2xl bg-gradient-gold py-3 font-display text-sm font-semibold text-gold-foreground"
+                >
                   Add to diary
                 </button>
               </div>
@@ -67,7 +87,11 @@ function Scan() {
           ) : (
             <p className="text-center text-sm text-primary-foreground/70">Scanning...</p>
           )}
-          <Link to="/add" search={{ meal: "Snacks" }} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 py-3.5 text-sm font-semibold">
+          <Link
+            to="/add"
+            search={{ meal: "Snacks" }}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 py-3.5 text-sm font-semibold"
+          >
             <Pencil className="h-4 w-4" /> Enter manually
           </Link>
         </div>

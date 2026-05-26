@@ -1,26 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
   // Handle CORS preflight request
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     const { email, otp } = await req.json();
-    const brevoApiKey = Deno.env.get('BREVO_API_KEY');
+    const brevoApiKey = Deno.env.get("BREVO_API_KEY");
 
-    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'api-key': brevoApiKey!
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "api-key": brevoApiKey!,
       },
       body: JSON.stringify({
         sender: { name: "PulsePeak", email: "pulsepeaktracker@gmail.com" },
@@ -85,13 +85,18 @@ serve(async (req) => {
     </div>
   </div>
 </body>
-</html>`
-      })
+</html>`,
+      }),
     });
 
     const data = await res.json();
-    return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

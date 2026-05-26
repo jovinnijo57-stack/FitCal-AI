@@ -93,7 +93,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function loadData() {
       // Immediately reset state to defaultState (preserving theme) to prevent previous user data from showing
-      setState(prev => ({ ...defaultState, theme: prev.theme }));
+      setState((prev) => ({ ...defaultState, theme: prev.theme }));
 
       try {
         let loaded = { ...defaultState };
@@ -102,13 +102,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (userId) {
           // Fetch Profile
           if (profileData) {
-            const rawMetaName = authData?.user?.user_metadata?.full_name || authData?.user?.user_metadata?.name || "";
-            const isPlaceholderName = (n: string) => !n || n.includes("PulsePeak") || n.includes("New User");
-            const resolvedName = (profileData.name && !isPlaceholderName(profileData.name))
-              ? profileData.name
-              : (rawMetaName && !isPlaceholderName(rawMetaName))
-                ? rawMetaName
-                : profileData.name || "PulsePeak User";
+            const rawMetaName =
+              authData?.user?.user_metadata?.full_name || authData?.user?.user_metadata?.name || "";
+            const isPlaceholderName = (n: string) =>
+              !n || n.includes("PulsePeak") || n.includes("New User");
+            const resolvedName =
+              profileData.name && !isPlaceholderName(profileData.name)
+                ? profileData.name
+                : rawMetaName && !isPlaceholderName(rawMetaName)
+                  ? rawMetaName
+                  : profileData.name || "PulsePeak User";
 
             loaded.profile = {
               ...loaded.profile,
@@ -126,19 +129,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               aiPlan: profileData.ai_plan || loaded.profile.aiPlan,
               age: profileData.age || loaded.profile.age,
               gender: profileData.gender || loaded.profile.gender,
-              activity: profileData.activity ? Number(profileData.activity) : loaded.profile.activity,
+              activity: profileData.activity
+                ? Number(profileData.activity)
+                : loaded.profile.activity,
               diet: profileData.diet || loaded.profile.diet,
               workoutType: profileData.workout_type || loaded.profile.workoutType,
             };
           } else {
             loaded.profile.email = authData?.user?.email || "";
             loaded.profile.phone = authData?.user?.user_metadata?.phone || "";
-            loaded.profile.name = authData?.user?.user_metadata?.full_name || authData?.user?.user_metadata?.name || "New User";
+            loaded.profile.name =
+              authData?.user?.user_metadata?.full_name ||
+              authData?.user?.user_metadata?.name ||
+              "New User";
           }
 
           // Fetch Meals for today
-          const todayStr = new Date().toISOString().split('T')[0];
-          const { data: mealsData } = await supabase.from("meal_logs").select("*").eq("user_id", userId).eq("logged_date", todayStr);
+          const todayStr = new Date().toISOString().split("T")[0];
+          const { data: mealsData } = await supabase
+            .from("meal_logs")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("logged_date", todayStr);
           if (mealsData && mealsData.length > 0) {
             loaded.meals = mealsData.map((m: any) => ({
               id: m.id,
@@ -158,33 +170,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
 
           // Fetch Exercises for today
-          const { data: exData } = await supabase.from("exercise_logs").select("*").eq("user_id", userId).eq("logged_date", todayStr);
+          const { data: exData } = await supabase
+            .from("exercise_logs")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("logged_date", todayStr);
           if (exData && exData.length > 0) {
             loaded.exercises = exData.map((e: any) => ({
               id: e.id,
-              exercise: { id: e.id, name: e.exercise_name, kcalPerMin: Math.round(e.calories_burned / e.duration_minutes), icon: "⚡" },
+              exercise: {
+                id: e.id,
+                name: e.exercise_name,
+                kcalPerMin: Math.round(e.calories_burned / e.duration_minutes),
+                icon: "⚡",
+              },
               minutes: e.duration_minutes,
               kcal: e.calories_burned,
             }));
           }
 
           // Fetch Water for today
-          const { data: waterData } = await supabase.from("water_logs").select("*").eq("user_id", userId).eq("logged_date", todayStr).single();
+          const { data: waterData } = await supabase
+            .from("water_logs")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("logged_date", todayStr)
+            .single();
           if (waterData) {
             loaded.waterMl = waterData.amount_ml;
           }
 
           // Sync Weight History to local storage for charts
-          const { data: weightData } = await supabase.from("weight_logs").select("*").eq("user_id", userId).order("logged_date", { ascending: true });
+          const { data: weightData } = await supabase
+            .from("weight_logs")
+            .select("*")
+            .eq("user_id", userId)
+            .order("logged_date", { ascending: true });
           if (weightData && weightData.length > 0) {
-            const userKey = `pulsepeak_weight_${loaded.profile.email || 'default'}`;
+            const userKey = `pulsepeak_weight_${loaded.profile.email || "default"}`;
             const mapped = weightData.map((w: any) => {
               // Convert ISO date (YYYY-MM-DD) to a Date object safely (avoiding timezone offset issues)
               const [year, month, day] = w.logged_date.split("-").map(Number);
               const dateObj = new Date(year, month - 1, day);
               return {
                 day: dateObj.toLocaleDateString("en-US", { weekday: "short" }),
-                weight: Number(w.weight_kg)
+                weight: Number(w.weight_kg),
               };
             });
             localStorage.setItem(userKey, JSON.stringify(mapped));
@@ -197,7 +227,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
     loadData();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
         loadData();
       } else if (event === "SIGNED_OUT") {
@@ -205,7 +237,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => { subscription.unsubscribe(); };
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -217,75 +251,91 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const api: Ctx = {
     state,
-    setProfile: (p) => setState((s) => {
-      const updatedProfile = { ...s.profile, ...p };
-      try {
-        // Sync with Supabase
-        getUserId().then(userId => {
-          if (userId) {
-            const payload: any = {
-              id: userId,
-              goal: updatedProfile.goal,
-              calorie_goal: updatedProfile.calorieGoal,
-              water_goal_ml: updatedProfile.waterGoalMl,
-              protein_goal: updatedProfile.proteinGoal,
-              carbs_goal: updatedProfile.carbsGoal,
-              fats_goal: updatedProfile.fatsGoal,
-              weight_kg: updatedProfile.weightKg,
-              height_cm: updatedProfile.heightCm,
-              ai_plan: updatedProfile.aiPlan,
-            };
-            if (updatedProfile.name) payload.name = updatedProfile.name;
-            if (updatedProfile.phone) payload.phone = updatedProfile.phone;
-            if (updatedProfile.age) payload.age = updatedProfile.age;
-            if (updatedProfile.gender) payload.gender = updatedProfile.gender;
-            if (updatedProfile.activity) payload.activity = Number(updatedProfile.activity);
-            if (updatedProfile.diet) payload.diet = updatedProfile.diet;
-            if (updatedProfile.workoutType) payload.workout_type = updatedProfile.workoutType;
+    setProfile: (p) =>
+      setState((s) => {
+        const updatedProfile = { ...s.profile, ...p };
+        try {
+          // Sync with Supabase
+          getUserId().then((userId) => {
+            if (userId) {
+              const payload: any = {
+                id: userId,
+                goal: updatedProfile.goal,
+                calorie_goal: updatedProfile.calorieGoal,
+                water_goal_ml: updatedProfile.waterGoalMl,
+                protein_goal: updatedProfile.proteinGoal,
+                carbs_goal: updatedProfile.carbsGoal,
+                fats_goal: updatedProfile.fatsGoal,
+                weight_kg: updatedProfile.weightKg,
+                height_cm: updatedProfile.heightCm,
+                ai_plan: updatedProfile.aiPlan,
+              };
+              if (updatedProfile.name) payload.name = updatedProfile.name;
+              if (updatedProfile.phone) payload.phone = updatedProfile.phone;
+              if (updatedProfile.age) payload.age = updatedProfile.age;
+              if (updatedProfile.gender) payload.gender = updatedProfile.gender;
+              if (updatedProfile.activity) payload.activity = Number(updatedProfile.activity);
+              if (updatedProfile.diet) payload.diet = updatedProfile.diet;
+              if (updatedProfile.workoutType) payload.workout_type = updatedProfile.workoutType;
 
-            supabase.from("profiles").select("id").eq("id", userId).single().then(({ data: existingProfile }) => {
-              if (existingProfile) {
-                const { id, ...updatePayload } = payload;
-                supabase.from("profiles").update(updatePayload).eq("id", userId).then(({ error }) => {
-                  if (error) console.error("Store setProfile update error:", error);
+              supabase
+                .from("profiles")
+                .select("id")
+                .eq("id", userId)
+                .single()
+                .then(({ data: existingProfile }) => {
+                  if (existingProfile) {
+                    const { id, ...updatePayload } = payload;
+                    supabase
+                      .from("profiles")
+                      .update(updatePayload)
+                      .eq("id", userId)
+                      .then(({ error }) => {
+                        if (error) console.error("Store setProfile update error:", error);
+                      });
+                  } else {
+                    supabase
+                      .from("profiles")
+                      .insert(payload)
+                      .then(({ error }) => {
+                        if (error) console.error("Store setProfile insert error:", error);
+                      });
+                  }
                 });
-              } else {
-                supabase.from("profiles").insert(payload).then(({ error }) => {
-                  if (error) console.error("Store setProfile insert error:", error);
-                });
-              }
-            });
-          }
-        });
-      } catch (err) {
-        console.error("Store setProfile error:", err);
-      }
-      return { ...s, profile: updatedProfile };
-    }),
+            }
+          });
+        } catch (err) {
+          console.error("Store setProfile error:", err);
+        }
+        return { ...s, profile: updatedProfile };
+      }),
     addMeal: (meal, food, servings) => {
       const id = crypto.randomUUID();
-      getUserId().then(userId => {
+      getUserId().then((userId) => {
         if (userId) {
-          supabase.from("meal_logs").insert({
-            id,
-            user_id: userId,
-            meal_type: meal,
-            food_name: food.name,
-            brand: food.brand || "",
-            serving: food.serving,
-            servings,
-            kcal: Math.round(food.kcal * servings),
-            protein: food.protein * servings,
-            carbs: food.carbs * servings,
-            fats: food.fats * servings,
-            logged_date: new Date().toISOString().split('T')[0],
-          }).then();
+          supabase
+            .from("meal_logs")
+            .insert({
+              id,
+              user_id: userId,
+              meal_type: meal,
+              food_name: food.name,
+              brand: food.brand || "",
+              serving: food.serving,
+              servings,
+              kcal: Math.round(food.kcal * servings),
+              protein: food.protein * servings,
+              carbs: food.carbs * servings,
+              fats: food.fats * servings,
+              logged_date: new Date().toISOString().split("T")[0],
+            })
+            .then();
         }
       });
       setState((s) => ({ ...s, meals: [...s.meals, { id, meal, food, servings }] }));
     },
     removeMeal: (id) => {
-      getUserId().then(userId => {
+      getUserId().then((userId) => {
         if (userId) {
           supabase.from("meal_logs").delete().eq("id", id).eq("user_id", userId).then();
         }
@@ -295,16 +345,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addExercise: (exercise, minutes) => {
       const id = crypto.randomUUID();
       const kcal = Math.round(exercise.kcalPerMin * minutes);
-      getUserId().then(userId => {
+      getUserId().then((userId) => {
         if (userId) {
-          supabase.from("exercise_logs").insert({
-            id,
-            user_id: userId,
-            exercise_name: exercise.name,
-            duration_minutes: minutes,
-            calories_burned: kcal,
-            logged_date: new Date().toISOString().split('T')[0],
-          }).then();
+          supabase
+            .from("exercise_logs")
+            .insert({
+              id,
+              user_id: userId,
+              exercise_name: exercise.name,
+              duration_minutes: minutes,
+              calories_burned: kcal,
+              logged_date: new Date().toISOString().split("T")[0],
+            })
+            .then();
         }
       });
       setState((s) => ({
@@ -313,40 +366,54 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }));
     },
     removeExercise: (id) => {
-      getUserId().then(userId => {
+      getUserId().then((userId) => {
         if (userId) {
           supabase.from("exercise_logs").delete().eq("id", id).eq("user_id", userId).then();
         }
       });
       setState((s) => ({ ...s, exercises: s.exercises.filter((e) => e.id !== id) }));
     },
-    addWater: (ml) => setState((s) => {
-      const newTotal = Math.max(0, s.waterMl + ml);
-      getUserId().then(userId => {
-        if (userId) {
-          const todayStr = new Date().toISOString().split('T')[0];
-          supabase.from("water_logs").upsert({
-            user_id: userId,
-            amount_ml: newTotal,
-            logged_date: todayStr,
-          }, { onConflict: "user_id,logged_date" }).then();
-        }
-      });
-      return { ...s, waterMl: newTotal };
-    }),
-    resetWater: () => setState((s) => {
-      getUserId().then(userId => {
-        if (userId) {
-          const todayStr = new Date().toISOString().split('T')[0];
-          supabase.from("water_logs").upsert({
-            user_id: userId,
-            amount_ml: 0,
-            logged_date: todayStr,
-          }, { onConflict: "user_id,logged_date" }).then();
-        }
-      });
-      return { ...s, waterMl: 0 };
-    }),
+    addWater: (ml) =>
+      setState((s) => {
+        const newTotal = Math.max(0, s.waterMl + ml);
+        getUserId().then((userId) => {
+          if (userId) {
+            const todayStr = new Date().toISOString().split("T")[0];
+            supabase
+              .from("water_logs")
+              .upsert(
+                {
+                  user_id: userId,
+                  amount_ml: newTotal,
+                  logged_date: todayStr,
+                },
+                { onConflict: "user_id,logged_date" },
+              )
+              .then();
+          }
+        });
+        return { ...s, waterMl: newTotal };
+      }),
+    resetWater: () =>
+      setState((s) => {
+        getUserId().then((userId) => {
+          if (userId) {
+            const todayStr = new Date().toISOString().split("T")[0];
+            supabase
+              .from("water_logs")
+              .upsert(
+                {
+                  user_id: userId,
+                  amount_ml: 0,
+                  logged_date: todayStr,
+                },
+                { onConflict: "user_id,logged_date" },
+              )
+              .then();
+          }
+        });
+        return { ...s, waterMl: 0 };
+      }),
     toggleTheme: () => setState((s) => ({ ...s, theme: s.theme === "dark" ? "light" : "dark" })),
   };
 
@@ -373,7 +440,12 @@ export function useTotals() {
   );
   const burned = state.exercises.reduce((a, e) => a + e.kcal, 0);
   return {
-    eaten: { kcal: Math.round(eaten.kcal), protein: Math.round(eaten.protein), carbs: Math.round(eaten.carbs), fats: Math.round(eaten.fats) },
+    eaten: {
+      kcal: Math.round(eaten.kcal),
+      protein: Math.round(eaten.protein),
+      carbs: Math.round(eaten.carbs),
+      fats: Math.round(eaten.fats),
+    },
     burned,
     net: Math.round(eaten.kcal - burned),
     remaining: Math.round(state.profile.calorieGoal - eaten.kcal + burned),

@@ -1,8 +1,8 @@
 export interface Ingredient {
-  id: string;        // ID matching a store product (for cart integration)
-  name: string;      // Ingredient name
-  qty: number;       // Quantity required
-  unit?: string;     // Unit like g, ml, pcs
+  id: string; // ID matching a store product (for cart integration)
+  name: string; // Ingredient name
+  qty: number; // Quantity required
+  unit?: string; // Unit like g, ml, pcs
 }
 
 export interface Recipe {

@@ -2,7 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PhoneShell, ScreenHeader } from "@/components/PhoneShell";
 import { getCalorieHistory, getWeightHistory } from "@/lib/mock-data";
 import { useStore, useTotals } from "@/lib/store";
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, CartesianGrid } from "recharts";
+import {
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  BarChart,
+  Bar,
+  CartesianGrid,
+} from "recharts";
 import { useState } from "react";
 import { clsx } from "clsx";
 
@@ -25,13 +35,14 @@ function Progress() {
   const activeCalorieData = tab === "weekly" ? calorieHistory.slice(-7) : calorieHistory.slice(-30);
 
   // Avg kcal
-  const avgKcal = activeCalorieData.length > 0 
-    ? Math.round(activeCalorieData.reduce((a, c) => a + c.eaten, 0) / activeCalorieData.length)
-    : totals.eaten.kcal;
+  const avgKcal =
+    activeCalorieData.length > 0
+      ? Math.round(activeCalorieData.reduce((a, c) => a + c.eaten, 0) / activeCalorieData.length)
+      : totals.eaten.kcal;
 
   // Active Days count
   // "according when the user marks calorie,workouts,water taken etc active days are calculated"
-  const activeDaysCount = activeCalorieData.filter(d => d.eaten > 0 || d.burned > 0).length;
+  const activeDaysCount = activeCalorieData.filter((d) => d.eaten > 0 || d.burned > 0).length;
   const now = new Date();
   const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const totalDays = tab === "weekly" ? 7 : daysInCurrentMonth;
@@ -46,7 +57,7 @@ function Progress() {
   const diffText = diff === 0 ? "0.0 kg" : `${isGain ? "+" : ""}${diff.toFixed(1)} kg`;
   const userGoal = profile.goal || "lose";
   const isBad = userGoal === "gain" ? diff < 0 : diff > 0;
-  const diffColor = diff === 0 ? "text-foreground" : (isBad ? "text-destructive" : "text-success");
+  const diffColor = diff === 0 ? "text-foreground" : isBad ? "text-destructive" : "text-success";
 
   return (
     <PhoneShell>
@@ -58,7 +69,9 @@ function Progress() {
           onClick={() => setTab("weekly")}
           className={clsx(
             "flex-1 rounded-xl py-2.5 font-display text-sm font-semibold transition-all duration-300",
-            tab === "weekly" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            tab === "weekly"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           Weekly
@@ -67,7 +80,9 @@ function Progress() {
           onClick={() => setTab("monthly")}
           className={clsx(
             "flex-1 rounded-xl py-2.5 font-display text-sm font-semibold transition-all duration-300",
-            tab === "monthly" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            tab === "monthly"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           Monthly
@@ -80,9 +95,12 @@ function Progress() {
           { l: "Active Days", v: activeDaysText },
           { l: "Avg Weight", v: diffText, color: diffColor },
         ].map((s) => (
-          <div key={s.l} className="rounded-2xl border border-border bg-gradient-card p-3 shadow-card">
+          <div
+            key={s.l}
+            className="rounded-2xl border border-border bg-gradient-card p-3 shadow-card"
+          >
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{s.l}</p>
-            <p className={`mt-1 font-display text-xl font-bold ${s.color || ''}`}>{s.v}</p>
+            <p className={`mt-1 font-display text-xl font-bold ${s.color || ""}`}>{s.v}</p>
           </div>
         ))}
       </div>
@@ -91,41 +109,107 @@ function Progress() {
         <Card title="Weight trend" sub={tab === "weekly" ? "Last 7 days" : "Last 4 weeks"}>
           {activeWeightData.length <= 1 ? (
             <div className="flex h-full flex-col items-center justify-center text-center px-4 border border-dashed border-border/60 rounded-2xl bg-card/40">
-              <p className="text-xs font-semibold text-muted-foreground">Chart building in progress...</p>
-              <p className="text-[10px] text-muted-foreground/70 mt-1">Log your weight over multiple days to generate your trend graph.</p>
+              <p className="text-xs font-semibold text-muted-foreground">
+                Chart building in progress...
+              </p>
+              <p className="text-[10px] text-muted-foreground/70 mt-1">
+                Log your weight over multiple days to generate your trend graph.
+              </p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={activeWeightData} margin={{ left: -10, right: 8, top: 8, bottom: 0 }}>
+              <AreaChart
+                data={activeWeightData}
+                margin={{ left: -10, right: 8, top: 8, bottom: 0 }}
+              >
                 <defs>
                   <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.5} />
                     <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
-                <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]} axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
-                <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12 }} />
-                <Area type="monotone" dataKey="weight" stroke="var(--color-primary)" strokeWidth={3} fill="url(#g1)" />
+                <CartesianGrid
+                  stroke="var(--color-border)"
+                  strokeDasharray="3 3"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="day"
+                  axisLine={false}
+                  tickLine={false}
+                  fontSize={10}
+                  tick={{ fill: "var(--color-muted-foreground)" }}
+                />
+                <YAxis
+                  domain={["dataMin - 0.5", "dataMax + 0.5"]}
+                  axisLine={false}
+                  tickLine={false}
+                  fontSize={10}
+                  tick={{ fill: "var(--color-muted-foreground)" }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 12,
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="weight"
+                  stroke="var(--color-primary)"
+                  strokeWidth={3}
+                  fill="url(#g1)"
+                />
               </AreaChart>
             </ResponsiveContainer>
           )}
         </Card>
 
-        <Card title="Calories in vs out" sub={tab === "weekly" ? "Weekly average" : "Monthly average"}>
+        <Card
+          title="Calories in vs out"
+          sub={tab === "weekly" ? "Weekly average" : "Monthly average"}
+        >
           {activeCalorieData.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-center px-4 border border-dashed border-border/60 rounded-2xl bg-card/40">
-              <p className="text-xs font-semibold text-muted-foreground">Chart building in progress...</p>
-              <p className="text-[10px] text-muted-foreground/70 mt-1">Log your meals and workouts to generate your calorie graph.</p>
+              <p className="text-xs font-semibold text-muted-foreground">
+                Chart building in progress...
+              </p>
+              <p className="text-[10px] text-muted-foreground/70 mt-1">
+                Log your meals and workouts to generate your calorie graph.
+              </p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={activeCalorieData} margin={{ left: -10, right: 8, top: 8, bottom: 0 }}>
-                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
-                <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: "var(--color-muted-foreground)" }} />
-                <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12 }} />
+              <BarChart
+                data={activeCalorieData}
+                margin={{ left: -10, right: 8, top: 8, bottom: 0 }}
+              >
+                <CartesianGrid
+                  stroke="var(--color-border)"
+                  strokeDasharray="3 3"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="day"
+                  axisLine={false}
+                  tickLine={false}
+                  fontSize={10}
+                  tick={{ fill: "var(--color-muted-foreground)" }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  fontSize={10}
+                  tick={{ fill: "var(--color-muted-foreground)" }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 12,
+                  }}
+                />
                 <Bar dataKey="eaten" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="burned" fill="var(--color-gold)" radius={[6, 6, 0, 0]} />
               </BarChart>

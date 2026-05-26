@@ -28,9 +28,19 @@ export function BottomNav() {
             );
           }
           return (
-            <Link key={to} to={to as never} className="flex flex-1 flex-col items-center gap-1 py-1.5">
-              <Icon className={`h-5 w-5 transition ${active ? "text-primary" : "text-muted-foreground"}`} />
-              <span className={`text-[10px] font-medium ${active ? "text-primary" : "text-muted-foreground"}`}>{label}</span>
+            <Link
+              key={to}
+              to={to as never}
+              className="flex flex-1 flex-col items-center gap-1 py-1.5"
+            >
+              <Icon
+                className={`h-5 w-5 transition ${active ? "text-primary" : "text-muted-foreground"}`}
+              />
+              <span
+                className={`text-[10px] font-medium ${active ? "text-primary" : "text-muted-foreground"}`}
+              >
+                {label}
+              </span>
             </Link>
           );
         })}

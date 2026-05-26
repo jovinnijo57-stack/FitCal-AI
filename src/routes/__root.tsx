@@ -74,17 +74,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "PulsePeak — Premium Nutrition & Fitness Coach" },
-      { name: "description", content: "Track calories, macros, workouts and water. AI meal suggestions tailored to your goals." },
+      {
+        name: "description",
+        content:
+          "Track calories, macros, workouts and water. AI meal suggestions tailored to your goals.",
+      },
       { name: "theme-color", content: "#0d7a5f" },
       { property: "og:title", content: "PulsePeak — Premium Nutrition & Fitness Coach" },
-      { property: "og:description", content: "Track calories, macros, workouts and water with an AI nutrition coach." },
+      {
+        property: "og:description",
+        content: "Track calories, macros, workouts and water with an AI nutrition coach.",
+      },
       { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,

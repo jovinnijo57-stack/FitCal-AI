@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
-const searchDir = 'c:\\Users\\User\\OneDrive\\Desktop\\project\\nexgro caffaine\\src';
+const searchDir = "c:\\Users\\User\\OneDrive\\Desktop\\project\\nexgro caffaine\\src";
 
 function walk(dir, callback) {
   let files;
@@ -10,7 +10,7 @@ function walk(dir, callback) {
   } catch (e) {
     return;
   }
-  files.forEach(file => {
+  files.forEach((file) => {
     const fullPath = path.join(dir, file);
     let stat;
     try {
@@ -26,14 +26,22 @@ function walk(dir, callback) {
   });
 }
 
-console.log('Searching for recipe files...');
+console.log("Searching for recipe files...");
 walk(searchDir, (filePath) => {
-  if (filePath.endsWith('.tsx') || filePath.endsWith('.ts') || filePath.endsWith('.js') || filePath.endsWith('.json')) {
+  if (
+    filePath.endsWith(".tsx") ||
+    filePath.endsWith(".ts") ||
+    filePath.endsWith(".js") ||
+    filePath.endsWith(".json")
+  ) {
     try {
-      const content = fs.readFileSync(filePath, 'utf8');
-      if (content.includes('IDLI') && (content.includes('calories') || content.includes('kcal') || content.includes('protein'))) {
+      const content = fs.readFileSync(filePath, "utf8");
+      if (
+        content.includes("IDLI") &&
+        (content.includes("calories") || content.includes("kcal") || content.includes("protein"))
+      ) {
         console.log(`Found: ${filePath}`);
       }
-    } catch(e) {}
+    } catch (e) {}
   }
 });

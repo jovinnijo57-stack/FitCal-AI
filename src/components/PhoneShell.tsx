@@ -1,7 +1,13 @@
 import type { ReactNode } from "react";
 import { BottomNav } from "./BottomNav";
 
-export function PhoneShell({ children, hideNav = false }: { children: ReactNode; hideNav?: boolean }) {
+export function PhoneShell({
+  children,
+  hideNav = false,
+}: {
+  children: ReactNode;
+  hideNav?: boolean;
+}) {
   return (
     <div className="min-h-dvh bg-background">
       <div className="mx-auto w-full max-w-md pb-28">{children}</div>
@@ -10,7 +16,15 @@ export function PhoneShell({ children, hideNav = false }: { children: ReactNode;
   );
 }
 
-export function ScreenHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+export function ScreenHeader({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+}) {
   return (
     <header className="flex items-end justify-between px-5 pb-3 pt-6">
       <div>

@@ -27,23 +27,46 @@ function AddFood() {
       if (filterCategory === "High Protein") return f.protein >= 20;
       if (filterCategory === "Low Calorie") return f.kcal <= 150;
       if (filterCategory === "Recipes") return f.brand === "Recipe";
-      if (filterCategory === "Healthy / Clean") return f.category === "Healthy" || (f.kcal <= 250 && f.fats <= 10);
-      if (filterCategory === "Cheat Meals") return f.category === "Indulgent" || f.kcal >= 400 || f.fats >= 20;
-      if (filterCategory === "Indian Delicacies") return f.id.startsWith("in") || f.category === "Indian";
+      if (filterCategory === "Healthy / Clean")
+        return f.category === "Healthy" || (f.kcal <= 250 && f.fats <= 10);
+      if (filterCategory === "Cheat Meals")
+        return f.category === "Indulgent" || f.kcal >= 400 || f.fats >= 20;
+      if (filterCategory === "Indian Delicacies")
+        return f.id.startsWith("in") || f.category === "Indian";
       if (filterCategory === "Low Carb / Keto") return f.carbs <= 15;
-      if (filterCategory === "Vegetarian") return !f.name.toLowerCase().includes("chicken") && !f.name.toLowerCase().includes("salmon") && !f.name.toLowerCase().includes("mutton") && !f.name.toLowerCase().includes("fish") && !f.name.toLowerCase().includes("prawn") && !f.name.toLowerCase().includes("turkey") && !f.name.toLowerCase().includes("bacon") && !f.name.toLowerCase().includes("beef");
-      if (filterCategory === "Beverages") return f.category === "Beverage" || f.serving.includes("ml") || f.serving.includes("cup") || f.serving.includes("glass");
+      if (filterCategory === "Vegetarian")
+        return (
+          !f.name.toLowerCase().includes("chicken") &&
+          !f.name.toLowerCase().includes("salmon") &&
+          !f.name.toLowerCase().includes("mutton") &&
+          !f.name.toLowerCase().includes("fish") &&
+          !f.name.toLowerCase().includes("prawn") &&
+          !f.name.toLowerCase().includes("turkey") &&
+          !f.name.toLowerCase().includes("bacon") &&
+          !f.name.toLowerCase().includes("beef")
+        );
+      if (filterCategory === "Beverages")
+        return (
+          f.category === "Beverage" ||
+          f.serving.includes("ml") ||
+          f.serving.includes("cup") ||
+          f.serving.includes("glass")
+        );
       return true;
     });
   }, [q, filterCategory]);
 
   const handleVoiceSearch = () => {
-    if (typeof window !== "undefined" && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in (window as any))) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (
+      typeof window !== "undefined" &&
+      ("webkitSpeechRecognition" in window || "SpeechRecognition" in (window as any))
+    ) {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = 'en-US';
+      recognition.lang = "en-US";
 
       recognition.onstart = () => setIsListening(true);
       recognition.onresult = (e: any) => {
@@ -75,8 +98,8 @@ function AddFood() {
               placeholder="Search foods, brands..."
               className="w-full bg-transparent text-sm outline-none"
             />
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={handleVoiceSearch}
               className={`p-1 rounded-full transition ${isListening ? "bg-destructive/20 text-destructive animate-pulse" : "text-muted-foreground hover:text-foreground"}`}
               title="Voice Search"
@@ -86,7 +109,7 @@ function AddFood() {
           </label>
 
           <div className="relative">
-            <button 
+            <button
               onClick={() => setShowFilter(!showFilter)}
               className={`flex h-12 items-center gap-1.5 rounded-2xl px-3.5 text-xs font-semibold shadow-sm transition ${filterCategory !== "All" ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground hover:text-foreground"}`}
               title="Filter Foods"
@@ -96,10 +119,24 @@ function AddFood() {
             </button>
             {showFilter && (
               <div className="absolute right-0 top-14 z-30 w-48 rounded-2xl border border-border bg-card p-2 shadow-glow animate-in fade-in zoom-in-95 max-h-80 overflow-y-auto scrollbar-hide">
-                {["All", "High Protein", "Low Calorie", "Recipes", "Healthy / Clean", "Cheat Meals", "Indian Delicacies", "Low Carb / Keto", "Vegetarian", "Beverages"].map(cat => (
+                {[
+                  "All",
+                  "High Protein",
+                  "Low Calorie",
+                  "Recipes",
+                  "Healthy / Clean",
+                  "Cheat Meals",
+                  "Indian Delicacies",
+                  "Low Carb / Keto",
+                  "Vegetarian",
+                  "Beverages",
+                ].map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => { setFilterCategory(cat); setShowFilter(false); }}
+                    onClick={() => {
+                      setFilterCategory(cat);
+                      setShowFilter(false);
+                    }}
                     className={`w-full rounded-xl px-3 py-2 text-left text-xs font-semibold transition ${filterCategory === cat ? "bg-primary/15 text-primary font-bold" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
                   >
                     {cat}
@@ -134,7 +171,10 @@ function AddFood() {
                     {f.name}
                     {f.verified && <BadgeCheck className="h-3.5 w-3.5 text-primary" />}
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">{f.brand ? `${f.brand} · ` : ""}{f.serving} · P{f.protein} C{f.carbs} F{f.fats}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {f.brand ? `${f.brand} · ` : ""}
+                    {f.serving} · P{f.protein} C{f.carbs} F{f.fats}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="font-display text-base font-bold">{f.kcal}</p>
@@ -161,15 +201,28 @@ function AddSheet({ food, meal, onClose }: { food: Food; meal: MealType; onClose
   const { addMeal } = useStore();
   const nav = useNavigate();
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 backdrop-blur-sm" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-t-3xl bg-card p-5 shadow-glow">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl bg-card p-5 shadow-glow"
+      >
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-muted" />
         <div className="flex items-start justify-between">
           <div>
             <p className="font-display text-lg font-bold">{food.name}</p>
-            <p className="text-xs text-muted-foreground">{food.brand ?? "Generic"} · {food.serving}</p>
+            <p className="text-xs text-muted-foreground">
+              {food.brand ?? "Generic"} · {food.serving}
+            </p>
           </div>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full bg-muted"><X className="h-4 w-4" /></button>
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center rounded-full bg-muted"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
         <div className="mt-4 grid grid-cols-4 gap-2 text-center">
           {[
@@ -179,7 +232,9 @@ function AddSheet({ food, meal, onClose }: { food: Food; meal: MealType; onClose
             { l: "F", v: (food.fats * servings).toFixed(1), c: "var(--color-fats)" },
           ].map((s) => (
             <div key={s.l} className="rounded-2xl bg-muted p-2">
-              <p className="font-display text-base font-bold" style={{ color: s.c }}>{s.v}</p>
+              <p className="font-display text-base font-bold" style={{ color: s.c }}>
+                {s.v}
+              </p>
               <p className="text-[10px] uppercase text-muted-foreground">{s.l}</p>
             </div>
           ))}
@@ -187,13 +242,27 @@ function AddSheet({ food, meal, onClose }: { food: Food; meal: MealType; onClose
         <div className="mt-5 flex items-center justify-between rounded-2xl border border-border px-4 py-3">
           <span className="text-sm text-muted-foreground">Servings</span>
           <div className="flex items-center gap-3">
-            <button onClick={() => setServings(Math.max(0.5, +(servings - 0.5).toFixed(1)))} className="grid h-8 w-8 place-items-center rounded-full bg-muted text-lg font-semibold">−</button>
+            <button
+              onClick={() => setServings(Math.max(0.5, +(servings - 0.5).toFixed(1)))}
+              className="grid h-8 w-8 place-items-center rounded-full bg-muted text-lg font-semibold"
+            >
+              −
+            </button>
             <span className="w-10 text-center font-display text-lg font-bold">{servings}</span>
-            <button onClick={() => setServings(+(servings + 0.5).toFixed(1))} className="grid h-8 w-8 place-items-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">+</button>
+            <button
+              onClick={() => setServings(+(servings + 0.5).toFixed(1))}
+              className="grid h-8 w-8 place-items-center rounded-full bg-primary text-lg font-semibold text-primary-foreground"
+            >
+              +
+            </button>
           </div>
         </div>
         <button
-          onClick={() => { addMeal(meal, food, servings); onClose(); nav({ to: "/diary" }); }}
+          onClick={() => {
+            addMeal(meal, food, servings);
+            onClose();
+            nav({ to: "/diary" });
+          }}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-hero py-4 font-display font-semibold text-primary-foreground shadow-glow"
         >
           <Plus className="h-4 w-4" /> Add to {meal}
