@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
-import { PhoneShell, ScreenHeader } from "@/components/PhoneShell";
+import { PhoneShell } from "@/components/PhoneShell";
 import { useStore } from "@/lib/store";
 import {
   Search,
@@ -16,10 +16,9 @@ import {
   Mic,
   MicOff,
   Check,
-  Heart,
-  Trophy,
   ShieldAlert,
   Sparkles,
+  SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,6 +48,73 @@ interface ExerciseItem {
   gif_url: string;
 }
 
+// Dedicated premium Exercise Card component matching exercises/index.html hover effects
+interface ExerciseCardProps {
+  ex: ExerciseItem;
+  onClick: () => void;
+  getIcon: (category: string, name: string) => string;
+}
+
+function ExerciseCard({ ex, onClick, getIcon }: ExerciseCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const thumbUrl = `/exercises/${ex.image}`;
+  const gifUrl = `/exercises/${ex.gif_url}`;
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="group relative bg-zinc-900/60 border border-zinc-800/80 hover:border-volt rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 shadow-md hover:-translate-y-1 hover:shadow-volt/10 flex flex-col h-full"
+    >
+      {/* Aspect Ratio 3:4 Media Container */}
+      <div className="relative aspect-[3/4] overflow-hidden bg-zinc-950/80">
+        <img
+          src={thumbUrl}
+          alt={ex.name}
+          loading="lazy"
+          className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
+            isHovered ? "opacity-0 scale-105" : "opacity-100 scale-100"
+          }`}
+        />
+        {isHovered && (
+          <img
+            src={gifUrl}
+            alt={ex.name}
+            className="absolute inset-0 w-full h-full object-cover animate-fade-in"
+          />
+        )}
+
+        {/* Tiny Premium Floating Category Badge */}
+        <div className="absolute top-2.5 left-2.5 bg-black/70 backdrop-blur-md px-2.5 py-0.5 rounded-md text-[8px] font-black text-zinc-400 uppercase tracking-widest border border-zinc-800">
+          {ex.category}
+        </div>
+
+        {/* Emoji Icon Floating Indicator */}
+        <div className="absolute bottom-2.5 right-2.5 bg-zinc-900/85 backdrop-blur-md h-7 w-7 rounded-lg flex items-center justify-center text-sm shadow-md border border-zinc-800">
+          {getIcon(ex.category, ex.name)}
+        </div>
+      </div>
+
+      {/* Card Info Details */}
+      <div className="p-3.5 flex-grow flex flex-col justify-between space-y-2">
+        <h4 className="text-[11px] font-black text-zinc-200 uppercase tracking-wide line-clamp-2 leading-tight group-hover:text-volt transition-colors">
+          {ex.name}
+        </h4>
+
+        <div className="flex flex-wrap gap-1">
+          <span className="text-[8px] font-extrabold uppercase tracking-wide bg-zinc-950 border border-zinc-850 text-zinc-400 px-1.5 py-0.5 rounded-md">
+            {ex.equipment}
+          </span>
+          <span className="text-[8px] font-extrabold uppercase tracking-wide bg-volt/10 text-volt px-1.5 py-0.5 rounded-md">
+            {ex.target}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ExercisePage() {
   const { state, addExercise } = useStore();
 
@@ -58,7 +124,11 @@ function ExercisePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedEquipment, setSelectedEquipment] = useState("All");
+  const [selectedTarget, setSelectedTarget] = useState("All");
   const [visibleCount, setVisibleCount] = useState(12);
+
+  // Advanced Filter Drawer State
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
 
   // Voice recognition search state
   const [isListening, setIsListening] = useState(false);
@@ -66,6 +136,7 @@ function ExercisePage() {
 
   // Selected exercise for Logging/Detail Modal
   const [selected, setSelected] = useState<ExerciseItem | null>(null);
+  const [mediaTab, setMediaTab] = useState<"youtube" | "gif">("youtube");
   const [mins, setMins] = useState(30);
   const [imgSrc, setImgSrc] = useState("");
   const [imageError, setImageError] = useState(false);
@@ -78,6 +149,37 @@ function ExercisePage() {
   const [timerRunning, setTimerRunning] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState(0); // in seconds
   const timerIntervalRef = useRef<any>(null);
+
+  // Lists for bottom slide-up filter panels
+  const uniqueEquipments = [
+    "All",
+    "body weight",
+    "dumbbell",
+    "barbell",
+    "cable",
+    "leverage machine",
+    "band",
+    "smith machine",
+    "kettlebell",
+    "stability ball",
+    "ez barbell",
+  ];
+
+  const uniqueTargets = [
+    "All",
+    "abs",
+    "pectorals",
+    "glutes",
+    "biceps",
+    "lats",
+    "delts",
+    "hamstrings",
+    "quadriceps",
+    "triceps",
+    "calves",
+    "forearms",
+    "cardiovascular system",
+  ];
 
   // Initialize SpeechSynthesis and SpeechRecognition APIs
   useEffect(() => {
@@ -119,7 +221,7 @@ function ExercisePage() {
       })
       .catch((err) => {
         console.error("Failed to load local exercise dataset, loading fallbacks.", err);
-        // Small subset fallback
+        // Fallback subset
         setAllExercises([
           {
             id: "0001",
@@ -216,7 +318,7 @@ function ExercisePage() {
   const [ytVideoId, setYtVideoId] = useState<string | null>(null);
   const [loadingYt, setLoadingYt] = useState(false);
 
-  // Set modal image source and reset states + fetch YouTube demo video using Key
+  // Set modal image source and reset states + fetch YouTube demo video using API Key
   useEffect(() => {
     if (selected) {
       setImgSrc(`/exercises/${selected.gif_url}`);
@@ -224,6 +326,7 @@ function ExercisePage() {
       setTimeElapsed(0);
       setTimerRunning(false);
       setYtVideoId(null);
+      setMediaTab("youtube"); // default to YouTube tab
 
       const youtubeKey = import.meta.env.VITE_YOUTUBE_API_KEY;
       if (youtubeKey) {
@@ -237,10 +340,17 @@ function ExercisePage() {
             const foundId = data.items?.[0]?.id?.videoId;
             if (foundId) {
               setYtVideoId(foundId);
+            } else {
+              setMediaTab("gif"); // Fallback to gif if no video found
             }
           })
-          .catch((err) => console.error("YouTube exercise fetch error:", err))
+          .catch((err) => {
+            console.error("YouTube exercise fetch error:", err);
+            setMediaTab("gif"); // Fallback to gif on error
+          })
           .finally(() => setLoadingYt(false));
+      } else {
+        setMediaTab("gif"); // Fallback if no key is loaded
       }
 
       if (synthRef.current) {
@@ -264,7 +374,6 @@ function ExercisePage() {
       timerIntervalRef.current = setInterval(() => {
         setTimeElapsed((prev) => {
           const next = prev + 1;
-          // Sync with the minutes log value if elapsed time completes a full minute
           if (next % 60 === 0) {
             setMins(Math.ceil(next / 60));
           }
@@ -361,7 +470,7 @@ function ExercisePage() {
     return 5;
   };
 
-  // Categories mapping to match the uploaded photo
+  // Categories mapping matching Volt dark premium styling
   const categoriesList = [
     {
       id: "strength",
@@ -413,6 +522,7 @@ function ExercisePage() {
     },
   ];
 
+  // Filtering calculations over all 1,324 exercises
   const filteredExercises = allExercises.filter((ex) => {
     const matchesSearch =
       ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -428,12 +538,16 @@ function ExercisePage() {
       selectedEquipment === "All" ||
       ex.equipment.toLowerCase() === selectedEquipment.toLowerCase();
 
-    return matchesSearch && matchesCategory && matchesEquipment;
+    const matchesTarget =
+      selectedTarget === "All" ||
+      ex.target.toLowerCase() === selectedTarget.toLowerCase();
+
+    return matchesSearch && matchesCategory && matchesEquipment && matchesTarget;
   });
 
   return (
     <PhoneShell>
-      {/* Dark volt styling variables */}
+      {/* Premium dark volt animation styling variables */}
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -448,13 +562,20 @@ function ExercisePage() {
         }
         .focus-within-volt:focus-within {
           border-color: #ccff00 !important;
-          box-shadow: 0 0 10px rgba(204, 255, 0, 0.2) !important;
+          box-shadow: 0 0 12px rgba(204, 255, 0, 0.25) !important;
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.3s ease-out forwards;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
       `,
         }}
       />
 
-      {/* Sleek Dark-themed header matching photo */}
+      {/* Sleek Premium Dark Header */}
       <div className="bg-zinc-950 px-5 pt-6 pb-2.5 flex items-center justify-between border-b border-zinc-900">
         <div className="flex items-center gap-2">
           <span className="font-display text-xl font-black italic tracking-tighter text-white">
@@ -467,16 +588,16 @@ function ExercisePage() {
         </div>
       </div>
 
-      {/* Main Database Content Grid */}
+      {/* Main Container */}
       <div className="flex-grow overflow-y-auto px-5 pt-4 pb-28 bg-zinc-950 text-white scrollbar-none">
         
-        {/* Search Bar - Sleek Dark matching photo */}
+        {/* Search & Filter Header Section */}
         <div className="relative flex items-center gap-2">
           <div className="relative flex-1 focus-within-volt rounded-2xl overflow-hidden transition-all duration-200">
             <Search className="absolute left-4 top-3.5 h-4 w-4 text-zinc-500" />
             <input
               type="text"
-              placeholder="Search exercises or targets..."
+              placeholder="Search exercises, targets..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -493,6 +614,20 @@ function ExercisePage() {
               </button>
             )}
           </div>
+
+          {/* Advanced Drawer Filter Toggle Button */}
+          <button
+            onClick={() => setShowFilterDrawer(true)}
+            className={`p-3.5 rounded-2xl border transition active:scale-95 cursor-pointer ${
+              selectedCategory !== "All" || selectedEquipment !== "All" || selectedTarget !== "All"
+                ? "bg-volt/15 border-volt text-volt"
+                : "bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-400"
+            }`}
+            title="Advanced Filters"
+          >
+            <SlidersHorizontal className="h-4.5 w-4.5" />
+          </button>
+
           <button
             onClick={handleVoiceSearch}
             className={`p-3.5 rounded-2xl border transition active:scale-95 ${
@@ -506,10 +641,11 @@ function ExercisePage() {
           </button>
         </div>
 
-        {/* Premium Banner matching photo */}
-        <div className="mt-5 rounded-3xl overflow-hidden relative border border-zinc-800 bg-gradient-to-r from-zinc-900 via-zinc-950 to-zinc-900 p-5 flex items-center justify-between shadow-lg">
-          <div className="absolute top-0 right-0 bottom-0 left-1/3 bg-cover bg-center opacity-30 mix-blend-screen pointer-events-none" 
-               style={{ backgroundImage: `url('https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80')` }} 
+        {/* Premium Graphic Workout Banner */}
+        <div className="mt-5 rounded-3xl overflow-hidden relative border border-zinc-850 bg-gradient-to-r from-zinc-900 via-zinc-950 to-zinc-900 p-5 flex items-center justify-between shadow-lg">
+          <div
+            className="absolute top-0 right-0 bottom-0 left-1/3 bg-cover bg-center opacity-30 mix-blend-screen pointer-events-none" 
+            style={{ backgroundImage: `url('https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80')` }} 
           />
           <div className="relative z-10 space-y-2 flex-1 pr-6">
             <span className="text-[9px] uppercase tracking-widest text-volt font-black bg-zinc-950 border border-volt/20 px-2 py-0.5 rounded-md inline-block">
@@ -525,6 +661,9 @@ function ExercisePage() {
             <button
               onClick={() => {
                 setSelectedCategory("All");
+                setSelectedEquipment("All");
+                setSelectedTarget("All");
+                setSearchQuery("");
                 toast.info("Showing complete workout catalog!");
               }}
               className="bg-volt text-black text-[10px] font-black px-4.5 py-2 rounded-full uppercase tracking-wider transition active:scale-95 shadow-md mt-1 cursor-pointer"
@@ -534,7 +673,7 @@ function ExercisePage() {
           </div>
         </div>
 
-        {/* Categories Grid matching photo */}
+        {/* Visual Premium Categories Selection Grid */}
         <div className="mt-6 space-y-3.5">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">
@@ -544,10 +683,11 @@ function ExercisePage() {
               onClick={() => {
                 setSelectedCategory("All");
                 setSelectedEquipment("All");
+                setSelectedTarget("All");
                 setSearchQuery("");
                 toast.success("Filters reset to show all!");
               }}
-              className="text-[10px] font-bold text-volt uppercase hover:underline"
+              className="text-[10px] font-bold text-volt uppercase hover:underline cursor-pointer"
             >
               See All
             </button>
@@ -575,7 +715,7 @@ function ExercisePage() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
                   
-                  {/* Top Right Checkmark matching photo */}
+                  {/* Top Right Checkmark Badge */}
                   <div className="absolute top-2.5 right-2.5">
                     <div className={`h-5 w-5 rounded-full flex items-center justify-center transition-all ${
                       isSelected ? "bg-volt text-black" : "bg-black/50 text-white/50"
@@ -598,68 +738,79 @@ function ExercisePage() {
           </div>
         </div>
 
-        {/* Exercises Catalog Selector List */}
+        {/* 2-Column Responsive Workout Grid Catalog */}
         <div className="mt-8 space-y-4">
           <div className="flex items-center justify-between border-t border-zinc-900 pt-5">
             <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">
-              Exercise Library
+              Workout Grid
             </h3>
             <span className="text-[9px] bg-zinc-900 text-zinc-400 px-2 py-0.5 rounded-full font-bold border border-zinc-800">
               {filteredExercises.length} Exercises
             </span>
           </div>
 
+          {/* Active Filters Display */}
+          {(selectedCategory !== "All" || selectedEquipment !== "All" || selectedTarget !== "All") && (
+            <div className="flex flex-wrap gap-1.5 items-center bg-zinc-900/40 border border-zinc-900 rounded-xl p-2.5">
+              <span className="text-[8px] uppercase tracking-wider text-zinc-500 font-bold mr-1">Active Filters:</span>
+              {selectedCategory !== "All" && (
+                <span className="text-[8px] font-black uppercase bg-volt/10 text-volt px-2 py-0.5 rounded-md flex items-center gap-1 border border-volt/20">
+                  {selectedCategory}
+                  <X className="h-2 w-2 cursor-pointer" onClick={() => setSelectedCategory("All")} />
+                </span>
+              )}
+              {selectedEquipment !== "All" && (
+                <span className="text-[8px] font-black uppercase bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-md flex items-center gap-1 border border-zinc-700">
+                  {selectedEquipment}
+                  <X className="h-2 w-2 cursor-pointer" onClick={() => setSelectedEquipment("All")} />
+                </span>
+              )}
+              {selectedTarget !== "All" && (
+                <span className="text-[8px] font-black uppercase bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-md flex items-center gap-1 border border-blue-500/20">
+                  {selectedTarget}
+                  <X className="h-2 w-2 cursor-pointer" onClick={() => setSelectedTarget("All")} />
+                </span>
+              )}
+              <button
+                onClick={() => {
+                  setSelectedCategory("All");
+                  setSelectedEquipment("All");
+                  setSelectedTarget("All");
+                }}
+                className="text-[8px] font-bold text-zinc-500 uppercase hover:text-white ml-auto"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+
           {loading ? (
-            <div className="py-16 text-center text-xs text-zinc-500 animate-pulse">
-              Loading exercise database...
+            <div className="py-16 text-center text-xs text-zinc-500 animate-pulse flex flex-col items-center gap-2">
+              <Sparkles className="h-6 w-6 text-volt animate-spin" />
+              <p>Loading exercise catalog...</p>
             </div>
           ) : filteredExercises.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-zinc-800 bg-zinc-900/50 py-16 text-center text-xs text-zinc-500">
-              No matching exercises found. Click "See All" above to clear filters!
+              No matching exercises found. Reset filters above to start over!
             </div>
           ) : (
-            <div className="grid gap-3">
-              {filteredExercises.slice(0, visibleCount).map((ex) => {
-                const icon = getExerciseIcon(ex.category, ex.name);
-                return (
-                  <div
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3.5">
+                {filteredExercises.slice(0, visibleCount).map((ex) => (
+                  <ExerciseCard
                     key={ex.id}
+                    ex={ex}
                     onClick={() => setSelected(ex)}
-                    className="flex items-center justify-between rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-900 to-zinc-950 p-3.5 shadow-sm hover:border-volt/30 transition duration-200 cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <span className="grid h-12 w-12 place-items-center rounded-xl bg-zinc-900 text-xl border border-zinc-800 shadow-inner group-hover:scale-105 transition-transform">
-                        {icon}
-                      </span>
-                      <div>
-                        <p className="text-xs font-bold text-white capitalize group-hover:text-volt transition-colors line-clamp-1">
-                          {ex.name}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="text-[8px] uppercase tracking-wider bg-zinc-900 text-zinc-400 px-2 py-0.5 rounded-md font-bold">
-                            {ex.equipment}
-                          </span>
-                          <span className="text-[8px] uppercase tracking-wider bg-volt/10 text-volt px-2 py-0.5 rounded-md font-bold">
-                            {ex.target}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity font-bold">
-                        Start Video
-                      </span>
-                      <ChevronRight className="h-4.5 w-4.5 text-zinc-600 group-hover:text-volt group-hover:translate-x-0.5 transition" />
-                    </div>
-                  </div>
-                );
-              })}
+                    getIcon={getExerciseIcon}
+                  />
+                ))}
+              </div>
 
               {/* Load More Pagination */}
               {filteredExercises.length > visibleCount && (
                 <button
                   onClick={() => setVisibleCount((prev) => prev + 12)}
-                  className="w-full mt-2 py-3.5 rounded-2xl border border-zinc-900 bg-zinc-900/40 hover:bg-zinc-900 text-xs font-black text-zinc-400 hover:text-volt transition active:scale-95 cursor-pointer"
+                  className="w-full py-3.5 rounded-2xl border border-zinc-900 bg-zinc-900/40 hover:bg-zinc-900 text-xs font-black text-zinc-400 hover:text-volt transition active:scale-95 cursor-pointer"
                 >
                   Load More Workouts ({filteredExercises.length - visibleCount} remaining)
                 </button>
@@ -669,15 +820,104 @@ function ExercisePage() {
         </div>
       </div>
 
+      {/* Advanced Filter slide-up Drawer Panel */}
+      {showFilterDrawer && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-zinc-950/75 backdrop-blur-sm p-0 animate-fade-in"
+          onClick={() => setShowFilterDrawer(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-t-3xl bg-zinc-900 border border-zinc-850 p-5 flex flex-col max-h-[70vh] overflow-y-auto"
+          >
+            <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-zinc-800 block" />
+
+            <div className="flex items-center justify-between border-b border-zinc-850 pb-3">
+              <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-1.5">
+                <SlidersHorizontal className="h-4 w-4 text-volt" />
+                <span>Filter Library</span>
+              </h3>
+              <button
+                onClick={() => setShowFilterDrawer(false)}
+                className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-1.5 text-zinc-400 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-5">
+              {/* Equipment Filters */}
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Equipment Type</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {uniqueEquipments.map((equip) => {
+                    const isActive = selectedEquipment === equip;
+                    return (
+                      <button
+                        key={equip}
+                        onClick={() => {
+                          setSelectedEquipment(equip);
+                          setVisibleCount(12);
+                        }}
+                        className={`text-[9px] font-extrabold uppercase px-2.5 py-1.5 rounded-lg border transition ${
+                          isActive
+                            ? "bg-volt text-black border-volt font-black"
+                            : "bg-zinc-950 border-zinc-850 text-zinc-400 hover:border-zinc-700"
+                        }`}
+                      >
+                        {equip}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Muscle Targets Filters */}
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Target Muscle Group</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {uniqueTargets.map((target) => {
+                    const isActive = selectedTarget === target;
+                    return (
+                      <button
+                        key={target}
+                        onClick={() => {
+                          setSelectedTarget(target);
+                          setVisibleCount(12);
+                        }}
+                        className={`text-[9px] font-extrabold uppercase px-2.5 py-1.5 rounded-lg border transition ${
+                          isActive
+                            ? "bg-volt text-black border-volt font-black"
+                            : "bg-zinc-950 border-zinc-850 text-zinc-400 hover:border-zinc-700"
+                        }`}
+                      >
+                        {target}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowFilterDrawer(false)}
+              className="w-full mt-6 rounded-2xl bg-volt text-black py-3.5 font-display font-black text-xs shadow-glow active:scale-95 transition uppercase tracking-wider cursor-pointer"
+            >
+              Apply Filter Selection
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Slide-Up Exercise Detail & Log Modal with Video Demonstration */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-zinc-950/75 backdrop-blur-sm p-0 sm:p-4 text-white"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-zinc-950/75 backdrop-blur-sm p-0 sm:p-4 text-white animate-fade-in"
           onClick={() => setSelected(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-zinc-900 border border-zinc-800 shadow-glow p-5 flex flex-col max-h-[85vh] overflow-y-auto animate-in slide-up duration-200"
+            className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-zinc-900 border border-zinc-800 shadow-glow p-5 flex flex-col max-h-[85vh] overflow-y-auto"
           >
             <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-zinc-800 block sm:hidden" />
 
@@ -686,26 +926,51 @@ function ExercisePage() {
                 <span className="text-[9px] uppercase tracking-widest text-volt font-black bg-volt/10 border border-volt/20 px-2.5 py-0.5 rounded-md">
                   {selected.category}
                 </span>
-                <p className="font-display text-lg font-extrabold mt-1.5 capitalize text-white">
+                <p className="font-display text-lg font-extrabold mt-1.5 capitalize text-white leading-tight">
                   {selected.name}
                 </p>
               </div>
               <button
                 onClick={() => setSelected(null)}
-                className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-1.5 text-zinc-400 hover:text-white active:scale-95 transition"
+                className="rounded-xl border border-zinc-800 bg-zinc-950/40 p-1.5 text-zinc-400 hover:text-white active:scale-95 transition cursor-pointer"
               >
                 <X className="h-4.5 w-4.5" />
               </button>
             </div>
 
-            {/* Dynamic YouTube Video Demonstration Player (Uses custom API Key!) */}
-            <div className="mt-4 aspect-video w-full overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 flex items-center justify-center relative shadow-inner">
+            {/* Media Selector Tabs (YouTube Video vs Animation GIF) */}
+            <div className="flex gap-1.5 bg-zinc-950 p-1 rounded-xl border border-zinc-850 mt-4">
+              <button
+                onClick={() => setMediaTab("youtube")}
+                disabled={loadingYt}
+                className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition ${
+                  mediaTab === "youtube"
+                    ? "bg-volt text-black font-black"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                🎥 Video Tutorial
+              </button>
+              <button
+                onClick={() => setMediaTab("gif")}
+                className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition ${
+                  mediaTab === "gif"
+                    ? "bg-volt text-black font-black"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                👾 Animation GIF
+              </button>
+            </div>
+
+            {/* Media Player viewport */}
+            <div className="mt-3 aspect-video w-full overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 flex items-center justify-center relative shadow-inner">
               {loadingYt ? (
                 <div className="flex flex-col items-center gap-2 text-zinc-500 animate-pulse">
                   <Sparkles className="h-8 w-8 text-volt animate-spin" />
                   <p className="text-[10px] font-bold">Searching YouTube tutorials...</p>
                 </div>
-              ) : ytVideoId ? (
+              ) : mediaTab === "youtube" && ytVideoId ? (
                 <iframe
                   className="h-full w-full"
                   src={`https://www.youtube.com/embed/${ytVideoId}`}
@@ -738,21 +1003,45 @@ function ExercisePage() {
               {/* Video Overlay Badge */}
               <div className="absolute top-3 left-3 bg-black/75 backdrop-blur-md px-2 py-0.5 rounded-md text-[9px] font-black text-white uppercase tracking-wider flex items-center gap-1">
                 <Play className="h-2.5 w-2.5 fill-volt text-volt" />
-                <span>{ytVideoId ? "YouTube Live Demo" : "Animation Demo"}</span>
+                <span>{mediaTab === "youtube" && ytVideoId ? "YouTube Live Demo" : "Animation Demo"}</span>
               </div>
             </div>
 
-            {/* Muscle Targeted Tags */}
-            <div className="grid grid-cols-3 gap-2 text-center mt-4 text-white">
-              <div className="rounded-xl border border-zinc-850 bg-zinc-950/30 py-2 px-1">
+            {/* Primary & Secondary Target Muscles Grid */}
+            <div className="grid grid-cols-2 gap-3 mt-4 text-left">
+              <div className="rounded-xl border border-zinc-850 bg-zinc-950/30 p-2.5">
                 <p className="text-[8px] uppercase tracking-wider text-zinc-500 font-bold">
-                  Target Muscle
+                  Primary Muscles
+                </p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  <span className="text-[10px] font-black text-volt capitalize">
+                    {selected.target}
+                  </span>
+                </div>
+              </div>
+              <div className="rounded-xl border border-zinc-850 bg-zinc-950/30 p-2.5">
+                <p className="text-[8px] uppercase tracking-wider text-zinc-500 font-bold">
+                  Synergy / Secondary
+                </p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  <span className="text-[10px] font-bold text-zinc-300 capitalize truncate">
+                    {selected.muscle_group || "none"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Metrics */}
+            <div className="grid grid-cols-3 gap-2 text-center mt-3 text-white">
+              <div className="rounded-xl border border-zinc-850 bg-zinc-950/20 py-2 px-1">
+                <p className="text-[8px] uppercase tracking-wider text-zinc-500 font-bold">
+                  Category
                 </p>
                 <p className="text-xs font-black text-white capitalize mt-0.5 truncate">
-                  {selected.target}
+                  {selected.category}
                 </p>
               </div>
-              <div className="rounded-xl border border-zinc-850 bg-zinc-950/30 py-2 px-1">
+              <div className="rounded-xl border border-zinc-850 bg-zinc-950/20 py-2 px-1">
                 <p className="text-[8px] uppercase tracking-wider text-zinc-500 font-bold">
                   Equipment
                 </p>
@@ -760,7 +1049,7 @@ function ExercisePage() {
                   {selected.equipment}
                 </p>
               </div>
-              <div className="rounded-xl border border-zinc-850 bg-zinc-950/30 py-2 px-1">
+              <div className="rounded-xl border border-zinc-850 bg-zinc-950/20 py-2 px-1">
                 <p className="text-[8px] uppercase tracking-wider text-zinc-500 font-bold">
                   Burn Rate
                 </p>
@@ -771,7 +1060,7 @@ function ExercisePage() {
             </div>
 
             <div className="mt-4 space-y-4">
-              {/* Audio Coach control & Instructions */}
+              {/* Stepped instructions */}
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <p className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -782,22 +1071,25 @@ function ExercisePage() {
                     onClick={toggleAudioCoach}
                     className={`flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full border transition duration-200 cursor-pointer ${
                       isSpeaking
-                        ? "bg-red-500/10 border-red-500/20 text-red-500"
-                        : "bg-volt/10 border-volt/20 text-volt"
+                        ? "bg-red-500/10 border-red-500/20 text-red-500 font-black animate-pulse"
+                        : "bg-volt/10 border-volt/20 text-volt font-black"
                     }`}
                   >
                     {isSpeaking ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                     <span>{isSpeaking ? "Pause Coach" : "Audio Coach"}</span>
                   </button>
                 </div>
-                <div className="max-h-[120px] overflow-y-auto space-y-2 pr-1 border border-zinc-800 rounded-xl p-3 bg-zinc-950/40">
+                <div className="max-h-[120px] overflow-y-auto space-y-2 pr-1 border border-zinc-800 rounded-xl p-3 bg-zinc-950/40 scrollbar-thin">
                   {(selected.instruction_steps?.en || [selected.instructions.en]).map(
                     (step, idx) => (
                       <div
                         key={idx}
-                        className="flex gap-2 text-xs text-zinc-400 leading-relaxed"
+                        className="flex gap-2 text-xs text-zinc-400 leading-relaxed items-start"
                       >
-                        <span className="font-bold text-volt min-w-[15px]">{idx + 1}.</span>
+                        {/* Number Stepper Badge */}
+                        <span className="flex-shrink-0 grid place-items-center h-4.5 w-4.5 rounded bg-zinc-900 border border-zinc-800 text-[9px] font-black text-volt">
+                          {idx + 1}
+                        </span>
                         <span>{step}</span>
                       </div>
                     ),
@@ -852,7 +1144,7 @@ function ExercisePage() {
                 </div>
               </div>
 
-              {/* Slider for logging */}
+              {/* Duration selector weight-burned metrics */}
               <div className="pt-2 border-t border-zinc-850">
                 <div className="flex items-baseline justify-between mb-1.5">
                   <span className="text-xs font-semibold text-zinc-400">
