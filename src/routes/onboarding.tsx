@@ -56,9 +56,9 @@ function Onboarding() {
       if (typeof window !== "undefined") {
         window.history.replaceState(null, "", window.location.pathname);
       }
-      toast.info("Selecting different account...");
+      toast.info("Google login cancelled. Redirecting to login...");
       supabase.auth.signOut().then(() => {
-        handleGoogleLoginWithSelectAccount();
+        nav({ to: "/login" });
       });
       return;
     }

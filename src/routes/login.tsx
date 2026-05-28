@@ -43,10 +43,8 @@ function Login() {
       if (typeof window !== "undefined") {
         window.history.replaceState(null, "", window.location.pathname);
       }
-      toast.info("Selecting different account...");
-      supabase.auth.signOut().then(() => {
-        handleGoogleLoginWithSelectAccount();
-      });
+      toast.info("Google login cancelled.");
+      supabase.auth.signOut();
       return;
     }
 
