@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
 import { useState, useEffect, useRef } from "react";
 import { PhoneShell } from "@/components/PhoneShell";
 import { useStore } from "@/lib/store";
@@ -18,7 +19,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+const exerciseSearchSchema = z.object({
+  intro: z.string().optional(),
+});
+
 export const Route = createFileRoute("/exercise")({
+  validateSearch: (search) => exerciseSearchSchema.parse(search),
   head: () => ({ meta: [{ title: "AI Gym Exercises — PulsePeak" }] }),
   component: ExercisePage,
 });
@@ -75,9 +81,10 @@ function ExerciseCard({ ex, onClick }: { ex: ExerciseItem; onClick: () => void }
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
 function ExercisePage() {
   const { addExercise } = useStore();
+  const { intro } = Route.useSearch();
+  const navigate = Route.useNavigate();
 
   const [allExercises, setAllExercises] = useState<ExerciseItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,14 +105,10 @@ function ExercisePage() {
   const synthRef = useRef<SpeechSynthesis | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const playIntro = sessionStorage.getItem("play_gym_intro");
-      if (playIntro === "true") {
-        setShowIntro(true);
-        sessionStorage.removeItem("play_gym_intro");
-      }
+    if (intro === "true") {
+      setShowIntro(true);
     }
-  }, []);
+  }, [intro]);
 
   // Gym Activity Logs
   const [gymLogs, setGymLogs] = useState<any[]>([]);
@@ -236,13 +239,14 @@ function ExercisePage() {
   const handleLogExercise = () => {
     if (!selected) return;
     const kcalPerMin = getKcalPerMin(selected.category);
-    const calculatedKcal = Math.round(kcalPerMin * mins);
+    const finalMins = timeElapsed > 0 ? Math.max(1, Math.round(timeElapsed / 60)) : 30;
+    const calculatedKcal = Math.round(kcalPerMin * finalMins);
 
     const newLog = {
       id: crypto.randomUUID(),
       name: selected.name,
       category: selected.category,
-      mins: mins,
+      mins: finalMins,
       kcal: calculatedKcal,
       date: new Date().toLocaleDateString("en-US", {
         month: "short",
@@ -258,7 +262,7 @@ function ExercisePage() {
     setGymLogs(updatedLogs);
     localStorage.setItem("pulsepeak_gym_activity_logs", JSON.stringify(updatedLogs));
 
-    toast.success(`✅ Saved to Gym History — ${mins} min · ${calculatedKcal} kcal! (Bypassed Dashboard)`);
+    toast.success(`✅ Saved to Gym History — ${finalMins} min · ${calculatedKcal} kcal! (Bypassed Dashboard)`);
     setSelected(null);
   };
 
@@ -310,7 +314,10 @@ function ExercisePage() {
                 Unlock your physical potential with our intelligent motion library. Click below to begin.
               </p>
               <button
-                onClick={() => setShowIntro(false)}
+                onClick={() => {
+                  setShowIntro(false);
+                  navigate({ search: {} as any });
+                }}
                 className="w-full max-w-[240px] py-4 rounded-full bg-[#ccff00] text-black font-display font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#ccff00]/20"
               >
                 Get Started
@@ -438,25 +445,6 @@ function ExercisePage() {
 
             {/* Log workout */}
             <div className="px-5 mb-4 shrink-0">
-              <p className="text-[9px] uppercase tracking-widest font-black text-zinc-500 mb-2.5">Log This Workout</p>
-              <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl p-3 mb-3">
-                <div className="flex-1">
-                  <p className="text-[8px] text-zinc-500 uppercase tracking-wider font-bold mb-1">Duration (minutes)</p>
-                  <input
-                    type="number"
-                    min={1}
-                    max={300}
-                    value={mins}
-                    onChange={(e) => setMins(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm font-black text-white text-center focus:outline-none focus:border-[#ccff00]/50"
-                  />
-                </div>
-                <div className="text-right">
-                  <p className="text-[8px] text-zinc-500 uppercase tracking-wider font-bold">Est. Burn</p>
-                  <p className="font-black text-xl text-[#ccff00]">{Math.round(getKcalPerMin(selected.category) * mins)}</p>
-                  <p className="text-[8px] text-zinc-500">kcal</p>
-                </div>
-              </div>
               <button
                 onClick={handleLogExercise}
                 className="w-full py-4 rounded-3xl bg-[#ccff00] text-black font-display font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition active:scale-95 shadow-lg shadow-[#ccff00]/20"
