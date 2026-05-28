@@ -107,6 +107,23 @@ function ExercisePage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const synthRef = useRef<SpeechSynthesis | null>(null);
 
+  // Gym Activity Logs
+  const [gymLogs, setGymLogs] = useState<any[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("pulsepeak_gym_activity_logs");
+      if (stored) {
+        try {
+          setGymLogs(JSON.parse(stored));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, []);
+
   // Timer
   const [timerRunning, setTimerRunning] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -219,8 +236,29 @@ function ExercisePage() {
   const handleLogExercise = () => {
     if (!selected) return;
     const kcalPerMin = getKcalPerMin(selected.category);
-    addExercise({ id: selected.id, name: selected.name, kcalPerMin, icon: getIcon(selected.category, selected.name) }, mins);
-    toast.success(`✅ Logged ${selected.name} — ${mins} min · ${Math.round(kcalPerMin * mins)} kcal burned!`);
+    const calculatedKcal = Math.round(kcalPerMin * mins);
+
+    const newLog = {
+      id: crypto.randomUUID(),
+      name: selected.name,
+      category: selected.category,
+      mins: mins,
+      kcal: calculatedKcal,
+      date: new Date().toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      icon: getIcon(selected.category, selected.name),
+    };
+
+    const updatedLogs = [newLog, ...gymLogs];
+    setGymLogs(updatedLogs);
+    localStorage.setItem("pulsepeak_gym_activity_logs", JSON.stringify(updatedLogs));
+
+    toast.success(`✅ Saved to Gym History — ${mins} min · ${calculatedKcal} kcal! (Bypassed Dashboard)`);
     setSelected(null);
   };
 
@@ -249,7 +287,7 @@ function ExercisePage() {
         @keyframes exFadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
       `}} />
 
-      <div className="flex-grow flex flex-col min-h-0 bg-zinc-950 text-white">
+      <div className="relative flex-grow flex flex-col min-h-0 bg-zinc-950 text-white h-full w-full overflow-hidden">
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="px-5 pt-6 pb-4 shrink-0">
           <div className="flex items-center justify-between mb-4">
@@ -257,8 +295,16 @@ function ExercisePage() {
               <p className="text-[9px] uppercase tracking-[0.2em] text-[#ccff00] font-black">PulsePeak</p>
               <h1 className="font-display text-2xl font-extrabold tracking-tight text-white mt-0.5">AI Gym</h1>
             </div>
-            <div className="h-9 w-9 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
-              <Dumbbell className="h-4.5 w-4.5 text-[#ccff00]" />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowLogs(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ccff00]/10 border border-[#ccff00]/25 text-[9px] font-black text-[#ccff00] uppercase tracking-widest active:scale-95 transition"
+              >
+                <span>View Activity</span>
+              </button>
+              <div className="h-9 w-9 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                <Dumbbell className="h-4.5 w-4.5 text-[#ccff00]" />
+              </div>
             </div>
           </div>
 
@@ -396,7 +442,7 @@ function ExercisePage() {
 
       {/* ── Exercise Detail Modal ───────────────────────────────────────────── */}
       {selected && (
-        <div className="absolute inset-0 z-50 flex flex-col bg-zinc-950 text-white overflow-y-auto volt-scroll animate-ex-fade">
+        <div className="absolute inset-0 z-50 flex flex-col bg-zinc-950 text-white overflow-y-auto volt-scroll animate-ex-fade h-full w-full">
           {/* Close */}
           <div className="px-5 pt-5 pb-3 flex items-center justify-between shrink-0">
             <button onClick={() => { setSelected(null); synthRef.current?.cancel(); setIsSpeaking(false); setTimerRunning(false); setTimeElapsed(0); }}
@@ -411,42 +457,30 @@ function ExercisePage() {
             </div>
           </div>
 
-          {/* Media tabs */}
-          <div className="px-5 mb-3 shrink-0">
-            <div className="flex gap-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-1">
-              {(["youtube", "gif"] as const).map((t) => (
-                <button key={t} onClick={() => setMediaTab(t)}
-                  className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition ${mediaTab === t ? "bg-[#ccff00] text-black" : "text-zinc-500"}`}>
-                  {t === "youtube" ? "📺 Video" : "🎞 GIF"}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Media */}
           <div className="px-5 shrink-0 mb-3">
             <div className="rounded-2xl overflow-hidden bg-zinc-900 aspect-video flex items-center justify-center border border-zinc-800">
-              {mediaTab === "youtube" ? (
-                loadingYt ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="h-8 w-8 rounded-full border-2 border-[#ccff00] border-t-transparent animate-spin" />
-                    <p className="text-[10px] text-zinc-500">Finding tutorial…</p>
-                  </div>
-                ) : ytVideoId ? (
-                  <iframe
-                    src={`https://www.youtube-nocookie.com/embed/${ytVideoId}?autoplay=0&rel=0`}
-                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope"
-                    className="w-full h-full"
-                    title={selected.name}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center gap-2 text-center px-4">
-                    <span className="text-3xl">📺</span>
-                    <p className="text-[10px] text-zinc-500 font-semibold">YouTube key not set<br/>Switch to GIF view</p>
-                  </div>
-                )
+              {loadingYt ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="h-8 w-8 rounded-full border-2 border-[#ccff00] border-t-transparent animate-spin" />
+                  <p className="text-[10px] text-zinc-500">Loading media…</p>
+                </div>
+              ) : ytVideoId ? (
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${ytVideoId}?autoplay=0&rel=0`}
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope"
+                  className="w-full h-full"
+                  title={selected.name}
+                />
               ) : (
-                <img src={`/exercises/${selected.gif_url}`} alt={selected.name} className="w-full h-full object-contain" />
+                <img
+                  src={`/exercises/${selected.gif_url}`}
+                  alt={selected.name}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.src = "/exercises/images/default.jpg";
+                  }}
+                />
               )}
             </div>
           </div>
@@ -538,6 +572,94 @@ function ExercisePage() {
           </div>
         </div>
       )}
-    </PhoneShell>
-  );
-}
+
+          {/* ── Gym Activity History Modal ───────────────────────────────────────── */}
+          {showLogs && (
+            <div className="absolute inset-0 z-50 flex flex-col bg-zinc-950 text-white overflow-y-auto volt-scroll animate-ex-fade h-full w-full">
+              {/* Header */}
+              <div className="px-5 pt-5 pb-3 flex items-center justify-between shrink-0 border-b border-zinc-900">
+                <button
+                  onClick={() => setShowLogs(false)}
+                  className="h-9 w-9 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-widest text-[#ccff00] font-black">Gym Activity History</p>
+                </div>
+                {gymLogs.length > 0 ? (
+                  <button
+                    onClick={() => {
+                      if (confirm("Are you sure you want to clear your entire gym history?")) {
+                        setGymLogs([]);
+                        localStorage.removeItem("pulsepeak_gym_activity_logs");
+                        toast.success("Gym activity history cleared!");
+                      }
+                    }}
+                    className="text-[9px] font-bold text-red-500 hover:underline uppercase"
+                  >
+                    Clear All
+                  </button>
+                ) : (
+                  <div className="w-12" />
+                )}
+              </div>
+
+              {/* Stats Bar */}
+              <div className="px-5 py-4 shrink-0 grid grid-cols-2 gap-3">
+                <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-3.5 text-center">
+                  <p className="text-[8px] uppercase tracking-widest font-black text-zinc-500 mb-1">Workouts Logged</p>
+                  <p className="font-black text-xl text-white">{gymLogs.length}</p>
+                </div>
+                <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-3.5 text-center">
+                  <p className="text-[8px] uppercase tracking-widest font-black text-zinc-500 mb-1">Est. Gym Burn</p>
+                  <p className="font-black text-xl text-[#ccff00]">
+                    {gymLogs.reduce((acc, curr) => acc + (curr.kcal || 0), 0)} <span className="text-[9px] text-zinc-500 font-bold">kcal</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="flex-1 px-5 pb-12 overflow-y-auto volt-scroll">
+                {gymLogs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <span className="text-4xl mb-3">📋</span>
+                    <p className="text-xs font-bold text-zinc-400">No gym activities logged yet</p>
+                    <p className="text-[9px] text-zinc-600 mt-1 max-w-[200px] leading-relaxed">
+                      Start an exercise, set your minutes, and log it to build your history!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {gymLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="bg-zinc-900/40 border border-zinc-900 hover:border-zinc-800 rounded-2xl p-3.5 flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-xl bg-zinc-900 flex items-center justify-center text-lg shrink-0">
+                            {log.icon || "🏋️"}
+                          </div>
+                          <div>
+                            <h4 className="text-[11px] font-black text-zinc-200 uppercase leading-snug line-clamp-1">
+                              {log.name}
+                            </h4>
+                            <p className="text-[8px] text-zinc-500 font-semibold uppercase mt-0.5 tracking-wider">
+                              {log.category} · {log.date}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xs font-black text-[#ccff00] leading-none">+{log.kcal} kcal</p>
+                          <p className="text-[8px] text-zinc-500 mt-1">{log.mins} mins</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </PhoneShell>
+      );
+    }
