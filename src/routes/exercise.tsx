@@ -140,7 +140,10 @@ function ExercisePage() {
         video.play().catch(() => {});
       };
       
+      // Call load() programmatically so mobile browsers correctly parse nested source tags and preload media
+      video.load();
       playVideo();
+      
       // Safe fallback event listeners for strict mobile browser autoplay blocks
       const playOnInteraction = () => {
         playVideo();
@@ -339,7 +342,10 @@ function ExercisePage() {
         video.play().catch(() => {});
       };
       
+      // Call load() programmatically so mobile browsers correctly parse nested source tags and preload media
+      video.load();
       playVideo();
+      
       // Safe fallback event listeners for strict mobile browser autoplay blocks
       const playOnInteraction = () => {
         playVideo();
@@ -403,7 +409,7 @@ function ExercisePage() {
               <div className="relative z-10 flex flex-col items-center gap-3 pb-16 px-6 w-full animate-ex-fade">
                 <button
                   onClick={() => setShowIntro(false)}
-                  className="px-6 py-2.5 rounded-full bg-[#ccff00] text-black font-display font-black text-[10px] uppercase tracking-widest shadow-[0_0_20px_rgba(204,255,0,0.25)] active:scale-95 transition"
+                  className="px-8 py-3.5 rounded-full bg-[#ccff00] text-black font-display font-black text-xs uppercase tracking-widest shadow-[0_0_25px_rgba(204,255,0,0.3)] active:scale-95 transition"
                 >
                   Get Started
                 </button>
@@ -665,7 +671,7 @@ function ExercisePage() {
               </div>
 
               {/* Blue Banner Video — above search bar */}
-              <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden relative mb-4 bg-zinc-950">
+              <div className="w-full rounded-2xl overflow-hidden relative mb-4 bg-zinc-950">
                 <video
                   ref={bannerVideoRefCallback}
                   autoPlay
@@ -673,7 +679,7 @@ function ExercisePage() {
                   muted
                   playsInline
                   preload="auto"
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="w-full h-auto block rounded-2xl"
                 >
                   <source src="/blue_video.mp4?v=202605282255" type="video/mp4" />
                 </video>
