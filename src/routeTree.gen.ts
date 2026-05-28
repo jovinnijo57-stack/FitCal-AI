@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WaterRouteImport } from './routes/water'
+import { Route as TrainRouteImport } from './routes/train'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ScanRouteImport } from './routes/scan'
 import { Route as RecipesRouteImport } from './routes/recipes'
@@ -29,6 +30,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const WaterRoute = WaterRouteImport.update({
   id: '/water',
   path: '/water',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrainRoute = TrainRouteImport.update({
+  id: '/train',
+  path: '/train',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/recipes': typeof RecipesRoute
   '/scan': typeof ScanRoute
   '/signup': typeof SignupRoute
+  '/train': typeof TrainRoute
   '/water': typeof WaterRoute
 }
 export interface FileRoutesByTo {
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/recipes': typeof RecipesRoute
   '/scan': typeof ScanRoute
   '/signup': typeof SignupRoute
+  '/train': typeof TrainRoute
   '/water': typeof WaterRoute
 }
 export interface FileRoutesById {
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/recipes': typeof RecipesRoute
   '/scan': typeof ScanRoute
   '/signup': typeof SignupRoute
+  '/train': typeof TrainRoute
   '/water': typeof WaterRoute
 }
 export interface FileRouteTypes {
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/recipes'
     | '/scan'
     | '/signup'
+    | '/train'
     | '/water'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/recipes'
     | '/scan'
     | '/signup'
+    | '/train'
     | '/water'
   id:
     | '__root__'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/recipes'
     | '/scan'
     | '/signup'
+    | '/train'
     | '/water'
   fileRoutesById: FileRoutesById
 }
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   RecipesRoute: typeof RecipesRoute
   ScanRoute: typeof ScanRoute
   SignupRoute: typeof SignupRoute
+  TrainRoute: typeof TrainRoute
   WaterRoute: typeof WaterRoute
 }
 
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/water'
       fullPath: '/water'
       preLoaderRoute: typeof WaterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/train': {
+      id: '/train'
+      path: '/train'
+      fullPath: '/train'
+      preLoaderRoute: typeof TrainRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -371,6 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecipesRoute: RecipesRoute,
   ScanRoute: ScanRoute,
   SignupRoute: SignupRoute,
+  TrainRoute: TrainRoute,
   WaterRoute: WaterRoute,
 }
 export const routeTree = rootRouteImport
