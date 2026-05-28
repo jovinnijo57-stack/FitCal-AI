@@ -664,19 +664,13 @@ function ExercisePage() {
                 </div>
               </div>
 
-              {/* Blue Banner Video — above search bar */}
-              <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden relative mb-4 bg-zinc-950">
-                <video
-                  ref={bannerVideoRefCallback}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="auto"
-                  className="absolute inset-0 w-full h-full object-cover"
-                >
-                  <source src="/blue_video.mp4?v=202605282255" type="video/mp4" />
-                </video>
+              {/* Blue Banner SVG — above search bar */}
+              <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden relative mb-4 bg-zinc-950 flex items-center justify-center">
+                <img
+                  src="/blue_video.svg?v=202605282305"
+                  alt="AI Gym Banner"
+                  className="w-full h-full object-cover"
+                />
               </div>
 
               {/* Search bar with Voice Search */}
