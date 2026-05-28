@@ -2229,15 +2229,15 @@ Return ONLY a valid JSON array of objects, where each object has these exact key
                                     <div className="px-3.5 pb-3 pt-1 text-[11px] text-muted-foreground space-y-2 border-t border-border/20 bg-muted/20 animate-in fade-in duration-150">
                                       <div>
                                         <span className="font-semibold text-emerald-650 block">🌟 Benefit:</span>
-                                        <span>{ing?.benefit || "Rich in macros."}</span>
+                                        <span>{ing?.benefit || "Rich in macros and essential nutrients."}</span>
                                       </div>
                                       <div>
                                         <span className="font-semibold text-amber-600 block">🛒 Selection:</span>
-                                        <span>{ing?.shopping_tip || "Select fresh options."}</span>
+                                        <span>{ing?.shopping_tip || "Select fresh, high quality options."}</span>
                                       </div>
                                       <div>
                                         <span className="font-semibold text-[#007000] block">🍳 Culinary Secret:</span>
-                                        <span>{ing?.culinary_secret || "Cook gently."}</span>
+                                        <span>{ing?.culinary_secret || "Cook gently to lock in natural macro elements."}</span>
                                       </div>
                                     </div>
                                   )}
