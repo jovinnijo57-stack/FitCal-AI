@@ -226,6 +226,11 @@ function Dashboard() {
 
         <Link
           to="/exercise"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("play_gym_intro", "true");
+            }
+          }}
           className="block rounded-3xl border border-border bg-gradient-card p-4 shadow-card hover:border-primary/50 transition relative group"
         >
           <div className="flex items-center justify-between">

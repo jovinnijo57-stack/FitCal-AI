@@ -93,8 +93,19 @@ function ExercisePage() {
   const [ytVideoId, setYtVideoId] = useState<string | null>(null);
   const [loadingYt, setLoadingYt] = useState(false);
   const [mins, setMins] = useState(30);
+  const [showIntro, setShowIntro] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const synthRef = useRef<SpeechSynthesis | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const playIntro = sessionStorage.getItem("play_gym_intro");
+      if (playIntro === "true") {
+        setShowIntro(true);
+        sessionStorage.removeItem("play_gym_intro");
+      }
+    }
+  }, []);
 
   // Gym Activity Logs
   const [gymLogs, setGymLogs] = useState<any[]>([]);
@@ -269,7 +280,7 @@ function ExercisePage() {
   const activeFilterCount = [selectedCategory !== "All", selectedEquipment !== "All", selectedTarget !== "All"].filter(Boolean).length;
 
   return (
-    <PhoneShell hideNav={selected !== null || showLogs} bgClass="bg-zinc-950">
+    <PhoneShell hideNav={selected !== null || showLogs || showIntro} bgClass="bg-zinc-950">
       <style dangerouslySetInnerHTML={{ __html: `
         .volt-scroll::-webkit-scrollbar { display: none; }
         .animate-ex-fade { animation: exFadeIn 0.2s ease forwards; }
@@ -277,7 +288,36 @@ function ExercisePage() {
       `}} />
 
       <div className="relative flex-grow flex flex-col min-h-0 bg-zinc-950 text-white h-full w-full overflow-hidden">
-        {selected ? (
+        {showIntro ? (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-end bg-zinc-950 text-white overflow-hidden h-full w-full">
+            {/* Fullscreen Video */}
+            <video
+              src="/red video.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            {/* Dark tint overlay */}
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px]" />
+
+            {/* Content overlay */}
+            <div className="relative z-10 w-full px-6 pb-12 pt-20 text-center bg-gradient-to-t from-black via-black/85 to-transparent flex flex-col items-center">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-[#ccff00] font-black">PulsePeak</p>
+              <h2 className="font-display text-3xl font-extrabold tracking-tight text-white mt-1 mb-2">AI Gym Guides</h2>
+              <p className="text-xs text-zinc-400 max-w-[280px] leading-relaxed mb-6 font-medium">
+                Unlock your physical potential with our intelligent motion library. Click below to begin.
+              </p>
+              <button
+                onClick={() => setShowIntro(false)}
+                className="w-full max-w-[240px] py-4 rounded-full bg-[#ccff00] text-black font-display font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#ccff00]/20"
+              >
+                Get Started
+              </button>
+            </div>
+          </div>
+        ) : selected ? (
           <div className="flex flex-col h-full w-full overflow-y-auto volt-scroll animate-ex-fade bg-zinc-950 text-white pb-6">
             {/* Close */}
             <div className="px-5 pt-5 pb-3 flex items-center justify-between shrink-0">
