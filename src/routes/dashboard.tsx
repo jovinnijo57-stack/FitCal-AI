@@ -225,7 +225,6 @@ function Dashboard() {
 
         <Link
           to="/exercise"
-          search={{ tab: "tracker" } as any}
           className="block rounded-3xl border border-border bg-gradient-card p-4 shadow-card hover:border-primary/50 transition relative group"
         >
           <div className="flex items-center justify-between">
@@ -234,9 +233,9 @@ function Dashboard() {
               Train →
             </span>
           </div>
-          <p className="mt-3 font-display text-lg font-bold leading-tight">GPS Track & Gym</p>
+          <p className="mt-3 font-display text-lg font-bold leading-tight">GPS Track & Train</p>
           <span className="mt-1 block text-xs text-muted-foreground">
-            Record runs, walks & browse workouts
+            Record runs, walks & outdoor tracks
           </span>
         </Link>
       </div>
