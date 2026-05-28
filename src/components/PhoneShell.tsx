@@ -4,12 +4,14 @@ import { BottomNav } from "./BottomNav";
 export function PhoneShell({
   children,
   hideNav = false,
+  bgClass = "bg-background",
 }: {
   children: ReactNode;
   hideNav?: boolean;
+  bgClass?: string;
 }) {
   return (
-    <div className="min-h-dvh bg-background">
+    <div className={`min-h-dvh ${bgClass}`}>
       <div className="mx-auto w-full max-w-md pb-28">{children}</div>
       {!hideNav && <BottomNav />}
     </div>

@@ -450,7 +450,7 @@ function TrainPage() {
   // RENDER
   // ════════════════════════════════════════════════════════════════════════════
   return (
-    <PhoneShell>
+    <PhoneShell bgClass="bg-zinc-950">
       <style dangerouslySetInnerHTML={{ __html: `
         .train-scrollbar::-webkit-scrollbar { display: none; }
         @keyframes pulse-ring {

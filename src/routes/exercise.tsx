@@ -38,35 +38,24 @@ interface ExerciseItem {
   gif_url: string;
 }
 
-// ─── Exercise Card ────────────────────────────────────────────────────────────
-function ExerciseCard({ ex, onClick, getIcon }: { ex: ExerciseItem; onClick: () => void; getIcon: (c: string, n: string) => string }) {
-  const [hovered, setHovered] = useState(false);
+function ExerciseCard({ ex, onClick }: { ex: ExerciseItem; onClick: () => void }) {
   return (
     <div
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       className="group relative bg-zinc-900/60 border border-zinc-800 hover:border-[#ccff00] rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 shadow-md hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(204,255,0,0.08)] flex flex-col h-full"
     >
       <div className="relative aspect-[3/4] overflow-hidden bg-zinc-950/80">
         <img
-          src={`/exercises/${ex.image}`}
+          src={`/exercises/${ex.gif_url}`}
           alt={ex.name}
           loading="lazy"
-          className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${hovered ? "opacity-0 scale-105" : "opacity-100 scale-100"}`}
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => {
+            e.currentTarget.src = `/exercises/${ex.image}`;
+          }}
         />
-        {hovered && (
-          <img
-            src={`/exercises/${ex.gif_url}`}
-            alt={ex.name}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        )}
         <div className="absolute top-2.5 left-2.5 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded-md text-[8px] font-black text-zinc-400 uppercase tracking-widest border border-zinc-800">
           {ex.category}
-        </div>
-        <div className="absolute bottom-2.5 right-2.5 bg-zinc-900/85 backdrop-blur-md h-7 w-7 rounded-lg flex items-center justify-center text-sm shadow-md border border-zinc-800">
-          {getIcon(ex.category, ex.name)}
         </div>
       </div>
       <div className="p-3 flex-grow flex flex-col justify-between space-y-1.5">
@@ -280,7 +269,7 @@ function ExercisePage() {
   const activeFilterCount = [selectedCategory !== "All", selectedEquipment !== "All", selectedTarget !== "All"].filter(Boolean).length;
 
   return (
-    <PhoneShell hideNav={selected !== null || showLogs}>
+    <PhoneShell hideNav={selected !== null || showLogs} bgClass="bg-zinc-950">
       <style dangerouslySetInnerHTML={{ __html: `
         .volt-scroll::-webkit-scrollbar { display: none; }
         .animate-ex-fade { animation: exFadeIn 0.2s ease forwards; }
@@ -660,7 +649,7 @@ function ExercisePage() {
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     {filteredExercises.slice(0, visibleCount).map((ex) => (
-                      <ExerciseCard key={ex.id} ex={ex} onClick={() => setSelected(ex)} getIcon={getIcon} />
+                      <ExerciseCard key={ex.id} ex={ex} onClick={() => setSelected(ex)} />
                     ))}
                   </div>
                   {visibleCount < filteredExercises.length && (
