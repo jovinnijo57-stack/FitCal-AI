@@ -403,7 +403,7 @@ function ExercisePage() {
               <div className="relative z-10 flex flex-col items-center gap-3 pb-16 px-6 w-full animate-ex-fade">
                 <button
                   onClick={() => setShowIntro(false)}
-                  className="w-full max-w-xs py-4 rounded-3xl bg-[#ccff00] text-black font-display font-black text-sm uppercase tracking-widest shadow-[0_0_30px_rgba(204,255,0,0.35)] active:scale-95 transition"
+                  className="px-6 py-2.5 rounded-full bg-[#ccff00] text-black font-display font-black text-[10px] uppercase tracking-widest shadow-[0_0_20px_rgba(204,255,0,0.25)] active:scale-95 transition"
                 >
                   Get Started
                 </button>
@@ -664,8 +664,8 @@ function ExercisePage() {
                 </div>
               </div>
 
-              {/* Blue Banner Video — above search bar, white background removed via mix-blend-mode */}
-              <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden relative mb-4 bg-zinc-900 border border-zinc-800/60 shadow-lg">
+              {/* Blue Banner Video — above search bar */}
+              <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden relative mb-4 bg-zinc-950">
                 <video
                   ref={bannerVideoRefCallback}
                   autoPlay
@@ -674,16 +674,9 @@ function ExercisePage() {
                   playsInline
                   preload="auto"
                   className="absolute inset-0 w-full h-full object-cover"
-                  style={{ mixBlendMode: "multiply" }}
                 >
                   <source src="/blue_video.mp4?v=202605282255" type="video/mp4" />
                 </video>
-                {/* Overlay gradient + text */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
-                <div className="absolute inset-0 flex flex-col justify-end p-3.5 select-none z-10">
-                  <h2 className="font-display text-sm font-black tracking-tight text-white uppercase leading-none">AI Gym Guides</h2>
-                  <p className="text-[8px] font-extrabold text-[#ccff00] tracking-wide mt-0.5 uppercase leading-none">Train your body. Upgrade your mind</p>
-                </div>
               </div>
 
               {/* Search bar with Voice Search */}
