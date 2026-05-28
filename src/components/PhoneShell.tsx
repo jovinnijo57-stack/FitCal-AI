@@ -12,7 +12,7 @@ export function PhoneShell({
 }) {
   return (
     <div className={`min-h-dvh ${bgClass}`}>
-      <div className="mx-auto w-full max-w-md pb-28">{children}</div>
+      <div className={`mx-auto w-full max-w-md ${hideNav ? "" : "pb-28"}`}>{children}</div>
       {!hideNav && <BottomNav />}
     </div>
   );

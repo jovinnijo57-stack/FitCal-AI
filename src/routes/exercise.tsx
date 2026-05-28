@@ -16,6 +16,7 @@ import {
   Clock,
   Dumbbell,
   CheckCircle,
+  Mic,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -104,8 +105,10 @@ function ExercisePage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const bannerVideoRef = useRef<HTMLVideoElement>(null);
   const [timerWasStarted, setTimerWasStarted] = useState(false);
   const [showButton, setShowButton] = useState(false);
+  const [isListening, setIsListening] = useState(false);
 
   useEffect(() => {
     if (intro === "true") {
@@ -321,6 +324,52 @@ function ExercisePage() {
 
   const activeFilterCount = [selectedCategory !== "All", selectedEquipment !== "All", selectedTarget !== "All"].filter(Boolean).length;
 
+  // Autoplay the banner video when the list page is shown
+  useEffect(() => {
+    if (!showIntro && !selected && !showLogs && bannerVideoRef.current) {
+      const bv = bannerVideoRef.current;
+      bv.defaultMuted = true;
+      bv.muted = true;
+      bv.playsInline = true;
+      bv.setAttribute("playsinline", "true");
+      bv.setAttribute("webkit-playsinline", "true");
+      bv.load();
+      bv.play().catch(() => {
+        const playOnTouch = () => {
+          bv.play().catch(() => {});
+          document.removeEventListener("touchstart", playOnTouch);
+          document.removeEventListener("click", playOnTouch);
+        };
+        document.addEventListener("touchstart", playOnTouch);
+        document.addEventListener("click", playOnTouch);
+      });
+    }
+  }, [showIntro, selected, showLogs]);
+
+  const handleVoiceSearch = () => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("🎙 Voice search is not supported in this browser.");
+      return;
+    }
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.onstart = () => { setIsListening(true); toast.info("🎙 Listening… Speak now!"); };
+      recognition.onerror = () => { setIsListening(false); toast.error("🎙 Voice recognition error."); };
+      recognition.onend = () => setIsListening(false);
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) { setSearchQuery(transcript); setVisibleCount(12); toast.success(`🎙 "${transcript}"`); }
+      };
+      recognition.start();
+    } catch (e) {
+      setIsListening(false);
+    }
+  };
 
   return (
     <PhoneShell hideNav={showIntro || selected !== null || showLogs} bgClass="bg-zinc-950">
@@ -610,21 +659,55 @@ function ExercisePage() {
                 </div>
               </div>
 
+              {/* Blue Banner Video — above search bar, white background removed via mix-blend-mode */}
+              <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden relative mb-4 bg-zinc-900 border border-zinc-800/60 shadow-lg">
+                <video
+                  ref={bannerVideoRef}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ mixBlendMode: "multiply" }}
+                >
+                  <source src="/blue_video.mp4?v=202605282255" type="video/mp4" />
+                </video>
+                {/* Overlay gradient + text */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 flex flex-col justify-end p-3.5 select-none z-10">
+                  <h2 className="font-display text-sm font-black tracking-tight text-white uppercase leading-none">AI Gym Guides</h2>
+                  <p className="text-[8px] font-extrabold text-[#ccff00] tracking-wide mt-0.5 uppercase leading-none">Train your body. Upgrade your mind</p>
+                </div>
+              </div>
 
-              {/* Search bar */}
+              {/* Search bar with Voice Search */}
               <div className="relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
                 <input
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(12); }}
                   placeholder="Search exercises, muscles, equipment…"
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-10 pr-10 py-3 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#ccff00]/60 transition"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl pl-10 pr-16 py-3 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#ccff00]/60 transition"
                 />
-                {searchQuery && (
-                  <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white p-0.5">
-                    <X className="h-4 w-4" />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  <button
+                    onClick={handleVoiceSearch}
+                    className={`h-7 w-7 rounded-xl flex items-center justify-center transition ${
+                      isListening
+                        ? "bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"
+                        : "text-zinc-500 hover:text-white bg-zinc-800/50 border border-zinc-700/30"
+                    }`}
+                    title="Voice Search"
+                  >
+                    {isListening ? <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-ping" /> : <Mic className="h-3.5 w-3.5" />}
                   </button>
-                )}
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} className="text-zinc-500 hover:text-white p-0.5">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
