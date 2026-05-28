@@ -10,6 +10,7 @@ import {
   Utensils,
   Dumbbell,
   Calendar,
+  Navigation,
 } from "lucide-react";
 import { PhoneShell, ScreenHeader } from "@/components/PhoneShell";
 import { ProgressRing, MacroBar } from "@/components/ProgressRing";
@@ -237,6 +238,32 @@ function Dashboard() {
           <span className="mt-1 block text-xs text-muted-foreground">
             Browse exercises & video guides
           </span>
+        </Link>
+      </div>
+
+      {/* Track Activity tile */}
+      <div className="mx-5 mt-3">
+        <Link
+          to="/train"
+          className="block rounded-3xl overflow-hidden relative shadow-card hover:scale-[1.01] transition active:scale-95"
+          style={{ background: "linear-gradient(135deg, #0f2846 0%, #1e3a5f 60%, #1d4ed8 100%)" }}
+        >
+          <div className="p-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Navigation className="h-4 w-4 text-blue-300" />
+                <span className="text-[10px] uppercase tracking-widest text-blue-300 font-bold">GPS Tracker</span>
+              </div>
+              <p className="font-display text-lg font-bold text-white leading-tight">Track Activity</p>
+              <p className="text-[10px] text-blue-200/70 mt-0.5">Run · Walk · Cycle · Hike</p>
+            </div>
+            <div className="text-right">
+              <div className="h-10 w-10 rounded-2xl bg-white/10 flex items-center justify-center ml-auto">
+                <span className="text-xl">🏃</span>
+              </div>
+              <span className="text-[10px] text-blue-300 mt-1 block font-semibold">Start →</span>
+            </div>
+          </div>
         </Link>
       </div>
 
