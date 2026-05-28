@@ -101,18 +101,19 @@ function ExercisePage() {
   const [ytVideoId, setYtVideoId] = useState<string | null>(null);
   const [loadingYt, setLoadingYt] = useState(false);
   const [mins, setMins] = useState(30);
-  const [showIntro, setShowIntro] = useState(false);
+  const [showIntro, setShowIntro] = useState(intro !== "false");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const synthRef = useRef<SpeechSynthesis | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const bannerVideoRef = useRef<HTMLVideoElement>(null);
   const [timerWasStarted, setTimerWasStarted] = useState(false);
   const [showButton, setShowButton] = useState(false);
   const [isListening, setIsListening] = useState(false);
 
+  // Sync with search parameter if it changes
   useEffect(() => {
     if (intro === "true") {
       setShowIntro(true);
+    } else if (intro === "false") {
+      setShowIntro(false);
     }
   }, [intro]);
 
@@ -126,29 +127,30 @@ function ExercisePage() {
     }
   }, [showIntro]);
 
-  useEffect(() => {
-    if (showIntro && videoRef.current) {
-      const video = videoRef.current;
+  // Robust welcome video callback ref to ensure instant muted autoplay with fallback triggers
+  const welcomeVideoRefCallback = (video: HTMLVideoElement | null) => {
+    if (video) {
       video.defaultMuted = true;
       video.muted = true;
       video.playsInline = true;
       video.setAttribute("playsinline", "true");
       video.setAttribute("webkit-playsinline", "true");
-      video.load();
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          const playOnInteraction = () => {
-            video.play().catch(() => {});
-            document.removeEventListener("touchstart", playOnInteraction);
-            document.removeEventListener("click", playOnInteraction);
-          };
-          document.addEventListener("touchstart", playOnInteraction);
-          document.addEventListener("click", playOnInteraction);
-        });
-      }
+      
+      const playVideo = () => {
+        video.play().catch(() => {});
+      };
+      
+      playVideo();
+      // Safe fallback event listeners for strict mobile browser autoplay blocks
+      const playOnInteraction = () => {
+        playVideo();
+        document.removeEventListener("touchstart", playOnInteraction);
+        document.removeEventListener("click", playOnInteraction);
+      };
+      document.addEventListener("touchstart", playOnInteraction, { passive: true });
+      document.addEventListener("click", playOnInteraction, { passive: true });
     }
-  }, [showIntro]);
+  };
 
   // Gym Activity Logs
   const [gymLogs, setGymLogs] = useState<any[]>([]);
@@ -324,27 +326,30 @@ function ExercisePage() {
 
   const activeFilterCount = [selectedCategory !== "All", selectedEquipment !== "All", selectedTarget !== "All"].filter(Boolean).length;
 
-  // Autoplay the banner video when the list page is shown
-  useEffect(() => {
-    if (!showIntro && !selected && !showLogs && bannerVideoRef.current) {
-      const bv = bannerVideoRef.current;
-      bv.defaultMuted = true;
-      bv.muted = true;
-      bv.playsInline = true;
-      bv.setAttribute("playsinline", "true");
-      bv.setAttribute("webkit-playsinline", "true");
-      bv.load();
-      bv.play().catch(() => {
-        const playOnTouch = () => {
-          bv.play().catch(() => {});
-          document.removeEventListener("touchstart", playOnTouch);
-          document.removeEventListener("click", playOnTouch);
-        };
-        document.addEventListener("touchstart", playOnTouch);
-        document.addEventListener("click", playOnTouch);
-      });
+  // Robust banner video callback ref to ensure instant muted autoplay with fallback triggers
+  const bannerVideoRefCallback = (video: HTMLVideoElement | null) => {
+    if (video) {
+      video.defaultMuted = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.setAttribute("playsinline", "true");
+      video.setAttribute("webkit-playsinline", "true");
+      
+      const playVideo = () => {
+        video.play().catch(() => {});
+      };
+      
+      playVideo();
+      // Safe fallback event listeners for strict mobile browser autoplay blocks
+      const playOnInteraction = () => {
+        playVideo();
+        document.removeEventListener("touchstart", playOnInteraction);
+        document.removeEventListener("click", playOnInteraction);
+      };
+      document.addEventListener("touchstart", playOnInteraction, { passive: true });
+      document.addEventListener("click", playOnInteraction, { passive: true });
     }
-  }, [showIntro, selected, showLogs]);
+  };
 
   const handleVoiceSearch = () => {
     if (typeof window === "undefined") return;
@@ -383,7 +388,7 @@ function ExercisePage() {
         {showIntro ? (
           <div className="relative w-full h-full min-h-dvh flex flex-col items-center justify-end overflow-hidden bg-black">
             <video
-              ref={videoRef}
+              ref={welcomeVideoRefCallback}
               autoPlay
               loop
               muted
@@ -662,7 +667,7 @@ function ExercisePage() {
               {/* Blue Banner Video — above search bar, white background removed via mix-blend-mode */}
               <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden relative mb-4 bg-zinc-900 border border-zinc-800/60 shadow-lg">
                 <video
-                  ref={bannerVideoRef}
+                  ref={bannerVideoRefCallback}
                   autoPlay
                   loop
                   muted
