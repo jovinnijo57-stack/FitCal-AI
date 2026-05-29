@@ -830,7 +830,7 @@ function TrainPage() {
         kcalPerMin: actInfo.met * weightKg / 60,
         icon: actInfo.emoji,
       };
-      addExercise(exercise, Math.round(summary.duration / 60));
+      addExercise(exercise, Math.round(summary.duration / 60) || 1);
       toast.success("Session saved to your activity log! 🎉");
     } catch {
       toast.error("Failed to save session.");
