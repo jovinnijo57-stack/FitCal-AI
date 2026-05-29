@@ -1112,8 +1112,9 @@ function TrainPage() {
 
           {/* Current Hero */}
           <div className="flex flex-col items-center py-6 text-center shrink-0">
-            <h1 className="text-6xl font-display font-black text-white relative pl-2">
-              {weatherDetails.temp}<span className="text-3xl absolute top-1 -right-6 text-slate-300 font-light">°C</span>
+            <h1 className="text-6xl font-display font-black text-white flex items-start justify-center">
+              <span>{weatherDetails.temp}</span>
+              <span className="text-3xl text-slate-300 font-light ml-1 mt-1">°C</span>
             </h1>
             <p className="text-base font-semibold text-slate-200 mt-3">{weatherDetails.desc}</p>
             {/* AQI Badge — dynamic label & colour based on actual AQI value */}
