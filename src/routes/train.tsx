@@ -393,18 +393,17 @@ function TrainPage() {
           wind: Math.round(current.wind_speed_10m),
         });
 
-        // Parse sunrise/sunset relative times
+        // Parse sunrise/sunset relative times (timezone-safe string slice)
         const formatTimeFromIso = (isoStr: string) => {
-          if (!isoStr) return "--:--";
-          const d = new Date(isoStr);
-          return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+          if (!isoStr || isoStr.length < 16) return "--:--";
+          return isoStr.slice(11, 16); // e.g. "06:02"
         };
 
         // Fetch all 7 days Open-Meteo returns (used for both 3-day preview and 5-day/7-day expand)
         const dailyList = wData.daily.time.map((timeStr: string, idx: number) => {
           const date = new Date(timeStr);
           const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-          const dayName = idx === 0 ? "Today" : idx === 1 ? "Tomorrow" : days[date.getDay()];
+          const dayName = idx === 0 ? "Today" : idx === 1 ? "Tomorrow" : days[date.getUTCDay()];
           const code = wData.daily.weather_code[idx];
           const info = getWmoWeather(code);
           return {
@@ -419,14 +418,16 @@ function TrainPage() {
 
         // Find the correct index for the current hour by matching the time string.
         // Open-Meteo returns times in the location's local timezone (because timezone=auto),
-        // so we match the current hour in the format "THH:00" to get the right index.
-        const nowIso = new Date().toISOString().slice(0, 13); // e.g. "2026-05-29T14"
+        // so we match the current hour using the location's local time offset.
+        const localTimeMs = Date.now() + (wData.utc_offset_seconds * 1000);
+        const nowIso = new Date(localTimeMs).toISOString().slice(0, 13); // e.g. "2026-05-29T15"
         let currentHourIdx = wData.hourly.time.findIndex((t: string) => t.startsWith(nowIso));
-        if (currentHourIdx < 0) currentHourIdx = new Date().getHours(); // fallback
+        if (currentHourIdx < 0) {
+          currentHourIdx = new Date(localTimeMs).getUTCHours(); // fallback using shifted UTC hour
+        }
 
         const hourlyList = wData.hourly.time.slice(currentHourIdx, currentHourIdx + 6).map((timeStr: string, idx: number) => {
-          const date = new Date(timeStr);
-          const formattedHour = `${String(date.getHours()).padStart(2, "0")}:00`;
+          const formattedHour = timeStr.slice(11, 16); // e.g. "15:00" timezone-safe
           const absIdx = currentHourIdx + idx;
           const code = wData.hourly.weather_code[absIdx] ?? 0;
           const info = getWmoWeather(code);
@@ -456,6 +457,7 @@ function TrainPage() {
           aqi: Math.round(aqData.current?.us_aqi ?? 49),
           dailyForecast: dailyList,
           hourlyForecast: hourlyList,
+          utcOffsetSeconds: wData.utc_offset_seconds,
         });
 
       } catch (err) {
@@ -1206,7 +1208,8 @@ function TrainPage() {
                         const [h, m] = timeStr.split(":").map(Number);
                         return h * 60 + m;
                       };
-                      const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+                      const locDate = new Date(Date.now() + (weatherDetails.utcOffsetSeconds * 1000));
+                      const nowMin = locDate.getUTCHours() * 60 + locDate.getUTCMinutes();
                       const riseMin = parseToMinutes(weatherDetails.sunrise);
                       const setMin = parseToMinutes(weatherDetails.sunset);
                       if (setMin > riseMin) {
