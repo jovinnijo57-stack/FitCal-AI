@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PhoneShell } from "@/components/PhoneShell";
 import { useStore } from "@/lib/store";
+import { supabase } from "@/lib/supabase";
 import {
   Play,
   Pause,
@@ -189,6 +190,7 @@ function TrackMap({ route, center, activityColor }: { route: Coords[]; center: C
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const [maplibreLoaded, setMaplibreLoaded] = useState(false);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
 
   // 1. Load MapLibre GL JS & CSS dynamically
   useEffect(() => {
@@ -236,94 +238,103 @@ function TrackMap({ route, center, activityColor }: { route: Coords[]; center: C
     const maplibregl = win.maplibregl;
     if (!maplibregl) return;
 
-    const initialCenter = center ? { lat: center.lat, lng: center.lng } : { lat: 10.4861, lng: 76.2350 }; // Thrissur, Kerala
+    const startCenter = center ? [center.lng, center.lat] : [76.2350, 10.4861]; // Thrissur, Kerala default
 
-    if (!mapInstanceRef.current) {
-      const map = new maplibregl.Map({
-        container: mapRef.current,
-        style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${maptilerKey}`,
-        center: [initialCenter.lng, initialCenter.lat], // Longitude, Latitude ordering
-        zoom: 15,
-        interactive: true,
-        attributionControl: false,
+    const map = new maplibregl.Map({
+      container: mapRef.current,
+      style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${maptilerKey}`,
+      center: startCenter, // Longitude, Latitude ordering
+      zoom: 16,
+      interactive: true,
+      attributionControl: false,
+    });
+
+    // Create pulse dot DOM element for marker
+    const el = document.createElement("div");
+    el.className = "relative flex items-center justify-center";
+    el.style.width = "20px";
+    el.style.height = "20px";
+
+    const ping = document.createElement("div");
+    ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full opacity-60";
+    ping.style.backgroundColor = activityColor;
+
+    const dot = document.createElement("div");
+    dot.className = "relative inline-flex rounded-full border-2 border-white shadow-md";
+    dot.style.backgroundColor = activityColor;
+    dot.style.width = "14px";
+    dot.style.height = "14px";
+
+    el.appendChild(ping);
+    el.appendChild(dot);
+
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat(startCenter)
+      .addTo(map);
+
+    map.on("load", () => {
+      // Add geojson source for route line
+      map.addSource("route-source", {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: route.map((c) => [c.lng, c.lat]),
+          },
+        },
       });
 
-      // Create pulse dot DOM element for marker
-      const el = document.createElement("div");
-      el.className = "relative flex items-center justify-center";
-      el.style.width = "20px";
-      el.style.height = "20px";
-
-      const ping = document.createElement("div");
-      ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full opacity-60";
-      ping.style.backgroundColor = activityColor;
-
-      const dot = document.createElement("div");
-      dot.className = "relative inline-flex rounded-full border-2 border-white";
-      dot.style.backgroundColor = activityColor;
-      dot.style.width = "12px";
-      dot.style.height = "12px";
-
-      el.appendChild(ping);
-      el.appendChild(dot);
-
-      const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([initialCenter.lng, initialCenter.lat])
-        .addTo(map);
-
-      map.on("load", () => {
-        // Add geojson source for route line
-        map.addSource("route-source", {
-          type: "geojson",
-          data: {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "LineString",
-              coordinates: route.map((c) => [c.lng, c.lat]),
-            },
-          },
-        });
-
-        // Add line layer
-        map.addLayer({
-          id: "route-layer",
-          type: "line",
-          source: "route-source",
-          layout: {
-            "line-join": "round",
-            "line-cap": "round",
-          },
-          paint: {
-            "line-color": activityColor,
-            "line-width": 6,
-            "line-opacity": 0.9,
-          },
-        });
+      // Add line layer
+      map.addLayer({
+        id: "route-layer",
+        type: "line",
+        source: "route-source",
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+        },
+        paint: {
+          "line-color": activityColor,
+          "line-width": 6,
+          "line-opacity": 0.9,
+        },
       });
 
-      mapInstanceRef.current = map;
-      markerRef.current = marker;
-    }
-  }, [maplibreLoaded, activityColor]);
+      setIsMapLoaded(true);
+    });
 
-  // 3. Update route polyline, location marker and zoom/pan center
+    mapInstanceRef.current = map;
+    markerRef.current = marker;
+
+    return () => {
+      try {
+        map.remove();
+      } catch (e) {}
+      mapInstanceRef.current = null;
+      markerRef.current = null;
+      setIsMapLoaded(false);
+    };
+  }, [maplibreLoaded]);
+
+  // 3. Update route polyline, location marker and center pan
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map) return;
+    const marker = markerRef.current;
+    if (!map || !isMapLoaded) return;
 
     // Update marker location
-    if (markerRef.current && center) {
-      markerRef.current.setLngLat([center.lng, center.lat]);
+    if (marker && center) {
+      marker.setLngLat([center.lng, center.lat]);
     }
 
-    // Update center pan dynamically using MapLibre GL hardware-accelerated flyTo
+    // Update center pan dynamically using smooth easeTo
     if (center) {
-      map.flyTo({
+      map.easeTo({
         center: [center.lng, center.lat],
-        zoom: 15,
-        essential: true,
-        speed: 1.2,
+        zoom: 16,
+        duration: 800,
       });
     }
 
@@ -340,21 +351,7 @@ function TrackMap({ route, center, activityColor }: { route: Coords[]; center: C
         },
       });
     }
-  }, [route, center]);
-
-  // Clean map on component destroy
-  useEffect(() => {
-    return () => {
-      if (mapInstanceRef.current) {
-        try {
-          mapInstanceRef.current.remove();
-        } catch (e) {
-          // ignore
-        }
-        mapInstanceRef.current = null;
-      }
-    };
-  }, []);
+  }, [route, center, isMapLoaded, activityColor]);
 
   if (!maplibreLoaded) {
     return (
@@ -382,6 +379,81 @@ function TrainPage() {
 
   const [showIntro, setShowIntro] = useState(true);
   const [showButton, setShowButton] = useState(false);
+
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [historyList, setHistoryList] = useState<any[]>([]);
+
+  // Load history from localStorage
+  const loadHistoryList = useCallback(() => {
+    try {
+      const saved = localStorage.getItem("pulsepeak_workout_history");
+      if (saved) {
+        setHistoryList(JSON.parse(saved));
+      } else {
+        setHistoryList([]);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  // Fetch and Sync Supabase History on Mount
+  useEffect(() => {
+    async function syncSupabaseHistory() {
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData?.user?.id) {
+          const { data: dbSessions } = await supabase
+            .from("workout_sessions")
+            .select("*")
+            .order("created_at", { ascending: false });
+            
+          if (dbSessions && dbSessions.length > 0) {
+            const mapped = dbSessions.map((w: any) => {
+              const dObj = new Date(w.created_at);
+              return {
+                id: w.id,
+                activity: w.activity_type,
+                distance: Number(w.distance_km),
+                duration: w.duration_seconds,
+                calories: w.calories,
+                steps: w.steps,
+                route: w.route_json || [],
+                laps: w.laps_json || [],
+                date: dObj.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+                time: dObj.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+                timestamp: dObj.getTime(),
+              };
+            });
+            
+            const localSaved = localStorage.getItem("pulsepeak_workout_history");
+            const localList = localSaved ? JSON.parse(localSaved) : [];
+            const merged = [...localList];
+            
+            mapped.forEach((dbS: any) => {
+              if (!merged.some(lS => lS.id === dbS.id)) {
+                merged.push(dbS);
+              }
+            });
+            
+            merged.sort((a, b) => b.timestamp - a.timestamp);
+            localStorage.setItem("pulsepeak_workout_history", JSON.stringify(merged));
+            setHistoryList(merged);
+          }
+        }
+      } catch (err) {
+        console.log("Supabase history sync ignored:", err);
+      }
+    }
+    
+    loadHistoryList();
+    syncSupabaseHistory();
+  }, [loadHistoryList]);
+
+  const todayDateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  const todaySessions = historyList.filter(s => s.date === todayDateStr);
 
   useEffect(() => {
     if (showIntro) {
@@ -833,9 +905,60 @@ function TrainPage() {
         kcalPerMin: actInfo.met * weightKg / 60,
         icon: actInfo.emoji,
       };
+      
+      // 1. Save to daily active logs (updates dashboard calorie ring)
       addExercise(exercise, Math.round(summary.duration / 60) || 1);
+      
+      // 2. Compute steps strides based on target activity
+      const stepsCount = summary.activity === "cycling" || summary.activity === "swimming"
+        ? 0
+        : Math.round(summary.distance * 1000 / (summary.activity === "running" ? 1.04 : 0.76));
+
+      // 3. Create rich workout history payload
+      const newSession = {
+        id: crypto.randomUUID(),
+        activity: summary.activity,
+        distance: summary.distance,
+        duration: summary.duration,
+        calories: summary.calories,
+        steps: stepsCount,
+        route: summary.route,
+        laps: summary.laps,
+        date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+        time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+        timestamp: Date.now(),
+      };
+
+      // 4. Save locally in localstorage workouts feed list
+      const saved = localStorage.getItem("pulsepeak_workout_history");
+      const currentList = saved ? JSON.parse(saved) : [];
+      currentList.unshift(newSession);
+      localStorage.setItem("pulsepeak_workout_history", JSON.stringify(currentList));
+      setHistoryList(currentList);
+
+      // 5. Save to Supabase workout_sessions table in background if online
+      supabase.auth.getUser().then(({ data }) => {
+        if (data?.user?.id) {
+          supabase.from("workout_sessions").insert({
+            id: newSession.id,
+            user_id: data.user.id,
+            activity_type: newSession.activity,
+            distance_km: newSession.distance,
+            duration_seconds: newSession.duration,
+            calories: newSession.calories,
+            steps: newSession.steps,
+            route_json: newSession.route,
+            laps_json: newSession.laps,
+          }).then(({ error }) => {
+            if (error) console.log("Supabase save error ignored:", error);
+          });
+        }
+      });
+
       toast.success("Session saved to your activity log! 🎉");
-    } catch {
+      handleReset(); // Dynamically redirect to Hero Activity screen!
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to save session.");
     }
   };
@@ -1002,28 +1125,47 @@ function TrainPage() {
           </div>
 
           {/* Today's activity summary (past sessions) */}
-          {state.exercises.length > 0 && (
-            <div className="px-5 mt-4">
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Today's Activity</p>
+          <div className="px-5 mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Today's Activity</p>
+              <button
+                onClick={() => {
+                  loadHistoryList();
+                  setShowHistoryModal(true);
+                }}
+                className="text-[10px] font-black text-blue-400 hover:text-blue-300 uppercase tracking-wider cursor-pointer"
+              >
+                View Activity
+              </button>
+            </div>
+            
+            {todaySessions.length > 0 ? (
               <div className="space-y-2">
-                {state.exercises.slice(-3).map((ex) => (
-                  <div key={ex.id} className="bg-white/5 border border-white/10 rounded-2xl p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-lg">{ex.exercise.icon || "⚡"}</span>
-                      <div>
-                        <p className="text-[11px] font-bold text-white">{ex.exercise.name}</p>
-                        <p className="text-[9px] text-slate-500">{ex.minutes} min</p>
+                {todaySessions.slice(0, 3).map((session: any) => {
+                  const act = ACTIVITIES.find(a => a.type === session.activity)!;
+                  return (
+                    <div key={session.id} className="bg-white/5 border border-white/10 rounded-2xl p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-lg">{act?.emoji || "🏃"}</span>
+                        <div>
+                          <p className="text-[11px] font-bold text-white capitalize">{session.activity}</p>
+                          <p className="text-[9px] text-slate-500">{fmtTime(session.duration)} • {session.distance.toFixed(2)} km</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-black text-white">{session.calories}</p>
+                        <p className="text-[8px] text-slate-500 uppercase">kcal</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-black text-white">{ex.kcal}</p>
-                      <p className="text-[8px] text-slate-500 uppercase">kcal</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="bg-white/5 border border-white/10 border-dashed rounded-2xl p-4 text-center">
+                <p className="text-[10px] text-slate-500 font-semibold">No activities recorded today yet.</p>
+              </div>
+            )}
+          </div>
 
           {/* Stats Summary Row */}
           <div className="px-5 mt-4 grid grid-cols-3 gap-2.5">
@@ -1530,6 +1672,203 @@ function TrainPage() {
             ))}
           </div>
 
+        </div>
+      )}
+      {/* Workout History Overlay */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 max-w-md mx-auto w-full h-full bg-[#060d1f] text-white z-50 flex flex-col min-h-0 overflow-y-auto train-scrollbar pb-10 font-sans animate-ex-fade">
+          {/* Header */}
+          <div className="px-5 pt-6 pb-4 flex items-center justify-between shrink-0 border-b border-white/5 bg-[#060d1f]">
+            <button
+              onClick={() => setShowHistoryModal(false)}
+              className="h-9 w-9 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition active:scale-90"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="text-center">
+              <h3 className="font-display text-sm font-extrabold tracking-tight text-white">Activity History</h3>
+              <p className="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5">All Recorded Tracks</p>
+            </div>
+            <button
+              onClick={() => {
+                if (confirm("Are you sure you want to clear your entire activity history? This cannot be undone.")) {
+                  localStorage.removeItem("pulsepeak_workout_history");
+                  setHistoryList([]);
+                  toast.success("Activity history cleared!");
+                  supabase.auth.getUser().then(({ data }) => {
+                    if (data?.user?.id) {
+                      supabase.from("workout_sessions").delete().eq("user_id", data.user.id).then();
+                    }
+                  });
+                }
+              }}
+              className="text-[10px] font-black text-red-400 hover:text-red-300 uppercase tracking-wider cursor-pointer"
+            >
+              Clear
+            </button>
+          </div>
+
+          {/* History List */}
+          <div className="p-5 flex-grow space-y-3">
+            {historyList.length > 0 ? (
+              historyList.map((session: any) => {
+                const act = ACTIVITIES.find(a => a.type === session.activity)!;
+                return (
+                  <button
+                    key={session.id}
+                    onClick={() => {
+                      setSelectedSession(session);
+                      setShowDetailModal(true);
+                    }}
+                    className="w-full text-left bg-white/5 border border-white/10 hover:border-white/20 active:scale-[0.98] transition rounded-3xl p-4 flex items-center justify-between cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl h-10 w-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                        {act?.emoji || "🏃"}
+                      </span>
+                      <div>
+                        <p className="text-xs font-black text-white capitalize">{session.activity}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{session.date} • {session.time}</p>
+                        <p className="text-[9px] text-slate-500 mt-1">{fmtTime(session.duration)} • {session.distance.toFixed(2)} km</p>
+                      </div>
+                    </div>
+                    <div className="text-right flex flex-col items-end">
+                      <p className="text-sm font-black text-white">{session.calories}</p>
+                      <p className="text-[8px] text-slate-400 uppercase tracking-wider">kcal</p>
+                      <ChevronRight className="h-4 w-4 text-slate-500 inline mt-1.5" />
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="py-20 text-center flex flex-col items-center gap-3">
+                <Navigation className="h-10 w-10 text-slate-600 animate-pulse" />
+                <p className="text-xs text-slate-500 font-bold">No recorded activities found.</p>
+                <p className="text-[10px] text-slate-600 px-10">Start a new walking, running, or cycling activity to log details here!</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Selected Workout Detail Modal */}
+      {showDetailModal && selectedSession && (
+        <div className="fixed inset-0 max-w-md mx-auto w-full h-full bg-[#060d1f] text-white z-50 flex flex-col min-h-0 overflow-y-auto train-scrollbar pb-10 font-sans animate-ex-fade">
+          {/* Header */}
+          <div className="px-5 pt-6 pb-4 flex items-center justify-between shrink-0 border-b border-white/5 bg-[#060d1f]">
+            <button
+              onClick={() => setShowDetailModal(false)}
+              className="h-9 w-9 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition active:scale-90"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="text-center">
+              <h3 className="font-display text-sm font-extrabold tracking-tight text-white capitalize">
+                {selectedSession.activity} Record
+              </h3>
+              <p className="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5">
+                {selectedSession.date} at {selectedSession.time}
+              </p>
+            </div>
+            <div className="w-9" />
+          </div>
+
+          {/* Body */}
+          <div className="p-5 flex-grow space-y-4">
+            {/* Big stats hero */}
+            <div className="bg-white/5 border border-white/10 rounded-3xl p-5 text-center">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <p className="font-black text-xl text-white leading-none">{selectedSession.distance.toFixed(2)}</p>
+                  <p className="text-[9px] text-slate-400 uppercase tracking-wider mt-1">km</p>
+                  <p className="text-[8px] text-slate-500 mt-0.5">Distance</p>
+                </div>
+                <div>
+                  <p className="font-black text-xl text-white leading-none">{fmtTime(selectedSession.duration)}</p>
+                  <p className="text-[9px] text-slate-400 uppercase tracking-wider mt-1">time</p>
+                  <p className="text-[8px] text-slate-500 mt-0.5">Duration</p>
+                </div>
+                <div>
+                  <p className="font-black text-xl text-white leading-none">{selectedSession.calories}</p>
+                  <p className="text-[9px] text-slate-400 uppercase tracking-wider mt-1">kcal</p>
+                  <p className="text-[8px] text-slate-500 mt-0.5">Calories</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Metrics grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+                <p className="text-[8px] text-slate-500 uppercase tracking-wider font-bold mb-1">Avg Pace</p>
+                <p className="font-black text-white text-lg leading-none">
+                  {fmtPace(selectedSession.distance, selectedSession.duration)}
+                </p>
+                <p className="text-[8px] text-slate-500 mt-0.5">min/km</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+                <p className="text-[8px] text-slate-500 uppercase tracking-wider font-bold mb-1">Avg Speed</p>
+                <p className="font-black text-white text-lg leading-none">
+                  {(selectedSession.duration > 0 ? (selectedSession.distance / (selectedSession.duration / 3600)) : 0).toFixed(1)}
+                </p>
+                <p className="text-[8px] text-slate-500 mt-0.5">km/h</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+                <p className="text-[8px] text-slate-500 uppercase tracking-wider font-bold mb-1">Estimated Steps</p>
+                <p className="font-black text-white text-lg leading-none">
+                  {selectedSession.steps}
+                </p>
+                <p className="text-[8px] text-slate-500 mt-0.5">steps</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
+                <p className="text-[8px] text-slate-500 uppercase tracking-wider font-bold mb-1">Laps Marked</p>
+                <p className="font-black text-white text-lg leading-none">
+                  {selectedSession.laps?.length || 0}
+                </p>
+                <p className="text-[8px] text-slate-500 mt-0.5">splits</p>
+              </div>
+            </div>
+
+            {/* Route map */}
+            {selectedSession.route?.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Recorded Route Map</p>
+                <div className="h-48 rounded-3xl overflow-hidden border border-white/10">
+                  <TrackMap
+                    route={selectedSession.route}
+                    center={selectedSession.route.at(-1) || null}
+                    activityColor={ACTIVITIES.find(a => a.type === selectedSession.activity)?.color || "#3b82f6"}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Laps splits */}
+            {selectedSession.laps?.length > 0 && (
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2">Lap Splits</p>
+                <div className="space-y-1.5">
+                  {selectedSession.laps.map((lap: any, idx: number) => (
+                    <div key={idx} className="bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Flag className="h-3 w-3 text-amber-400" />
+                        <p className="text-[11px] font-bold text-white">Lap {idx + 1}</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-[11px] font-black text-white">{lap.distance.toFixed(2)} km</p>
+                          <p className="text-[8px] text-slate-500">distance</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[11px] font-black text-white">{fmtTime(lap.time)}</p>
+                          <p className="text-[8px] text-slate-500">split time</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </PhoneShell>

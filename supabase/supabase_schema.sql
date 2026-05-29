@@ -304,3 +304,37 @@ CREATE POLICY "Users can insert own gym logs" ON public.gym_activity_logs
 CREATE POLICY "Users can delete own gym logs" ON public.gym_activity_logs
   FOR DELETE USING (auth.uid() = user_id);
 
+
+-- 10. Workout Sessions Table (for GPS Activity tracking history)
+CREATE TABLE IF NOT EXISTS public.workout_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  activity_type TEXT NOT NULL,
+  distance_km NUMERIC NOT NULL DEFAULT 0,
+  duration_seconds INTEGER NOT NULL DEFAULT 0,
+  calories INTEGER NOT NULL DEFAULT 0,
+  steps INTEGER NOT NULL DEFAULT 0,
+  route_json JSONB,
+  laps_json JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row-Level Security (RLS)
+ALTER TABLE public.workout_sessions ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist to avoid creation errors
+DROP POLICY IF EXISTS "Users can view own workout sessions" ON public.workout_sessions;
+DROP POLICY IF EXISTS "Users can insert own workout sessions" ON public.workout_sessions;
+DROP POLICY IF EXISTS "Users can delete own workout sessions" ON public.workout_sessions;
+
+-- Policies for authenticated access
+CREATE POLICY "Users can view own workout sessions" ON public.workout_sessions
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own workout sessions" ON public.workout_sessions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own workout sessions" ON public.workout_sessions
+  FOR DELETE USING (auth.uid() = user_id);
+
+
