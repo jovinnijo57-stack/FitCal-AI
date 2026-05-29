@@ -122,6 +122,16 @@ function getWmoWeather(code: number): { desc: string; icon: string } {
   return { desc: "Clear", icon: "☀️" };
 }
 
+// ─── AQI Label helper ─────────────────────────────────────────────────────────
+function getAqiLabel(aqi: number): { label: string; color: string; bg: string; border: string } {
+  if (aqi <= 50)  return { label: "Good",          color: "text-emerald-400", bg: "bg-emerald-500/10",  border: "border-emerald-500/25" };
+  if (aqi <= 100) return { label: "Moderate",       color: "text-yellow-400",  bg: "bg-yellow-500/10",   border: "border-yellow-500/25"  };
+  if (aqi <= 150) return { label: "Unhealthy (Sensitive)", color: "text-orange-400",  bg: "bg-orange-500/10",   border: "border-orange-500/25"  };
+  if (aqi <= 200) return { label: "Unhealthy",      color: "text-red-400",    bg: "bg-red-500/10",      border: "border-red-500/25"     };
+  if (aqi <= 300) return { label: "Very Unhealthy", color: "text-purple-400",  bg: "bg-purple-500/10",   border: "border-purple-500/25"  };
+  return                  { label: "Hazardous",     color: "text-rose-500",   bg: "bg-rose-500/10",     border: "border-rose-500/25"    };
+}
+
 // ─── Sun Arc Position Calculations ────────────────────────────────────────────
 function getSunPosition(progress: number) {
   const safeProgress = Math.max(0, Math.min(1, progress));
@@ -361,9 +371,9 @@ function TrainPage() {
           fetch(
             `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
             `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,pressure_msl,uv_index` +
-            `&hourly=temperature_2m,weather_code,wind_speed_10m` +
+            `&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability` +
             `&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max` +
-            `&timezone=auto`
+            `&timezone=auto&forecast_days=7`
           ),
           fetch(
             `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi`
@@ -407,17 +417,25 @@ function TrainPage() {
           };
         });
 
-        const currentHour = new Date().getHours();
-        const hourlyList = wData.hourly.time.slice(currentHour, currentHour + 4).map((timeStr: string, idx: number) => {
+        // Find the correct index for the current hour by matching the time string.
+        // Open-Meteo returns times in the location's local timezone (because timezone=auto),
+        // so we match the current hour in the format "THH:00" to get the right index.
+        const nowIso = new Date().toISOString().slice(0, 13); // e.g. "2026-05-29T14"
+        let currentHourIdx = wData.hourly.time.findIndex((t: string) => t.startsWith(nowIso));
+        if (currentHourIdx < 0) currentHourIdx = new Date().getHours(); // fallback
+
+        const hourlyList = wData.hourly.time.slice(currentHourIdx, currentHourIdx + 6).map((timeStr: string, idx: number) => {
           const date = new Date(timeStr);
           const formattedHour = `${String(date.getHours()).padStart(2, "0")}:00`;
-          const code = wData.hourly.weather_code[currentHour + idx] ?? 0;
+          const absIdx = currentHourIdx + idx;
+          const code = wData.hourly.weather_code[absIdx] ?? 0;
           const info = getWmoWeather(code);
           return {
             time: idx === 0 ? "Now" : formattedHour,
-            temp: Math.round(wData.hourly.temperature_2m[currentHour + idx]),
+            temp: Math.round(wData.hourly.temperature_2m[absIdx]),
             icon: info.icon,
-            windSpeed: Math.round(wData.hourly.wind_speed_10m[currentHour + idx]),
+            windSpeed: Math.round(wData.hourly.wind_speed_10m[absIdx]),
+            rainChance: wData.hourly.precipitation_probability ? Math.round(wData.hourly.precipitation_probability[absIdx] ?? 0) : 0,
           };
         });
 
@@ -485,7 +503,7 @@ function TrainPage() {
         () => {
           fallbackIpGeolocation();
         },
-        { timeout: 4000 }
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
       );
     } else {
       fallbackIpGeolocation();
@@ -1098,10 +1116,15 @@ function TrainPage() {
               {weatherDetails.temp}<span className="text-3xl absolute top-1 -right-6 text-slate-300 font-light">°C</span>
             </h1>
             <p className="text-base font-semibold text-slate-200 mt-3">{weatherDetails.desc}</p>
-            {/* AQI Badge */}
-            <div className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[9px] font-black uppercase tracking-wider">
-              <span className="text-xs">🍃</span> AQI {weatherDetails.aqi} (Good)
-            </div>
+            {/* AQI Badge — dynamic label & colour based on actual AQI value */}
+            {(() => {
+              const aqiInfo = getAqiLabel(weatherDetails.aqi);
+              return (
+                <div className={`mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full ${aqiInfo.bg} border ${aqiInfo.border} ${aqiInfo.color} text-[9px] font-black uppercase tracking-wider`}>
+                  <span className="text-xs">🍃</span> AQI {weatherDetails.aqi} ({aqiInfo.label})
+                </div>
+              );
+            })()}
           </div>
 
           {/* Daily Forecast — 3 days by default, expands to 7 when toggled */}
@@ -1145,13 +1168,16 @@ function TrainPage() {
           <div className="px-5 mb-4 shrink-0">
             <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4">
               <p className="text-[8px] uppercase tracking-widest font-black text-slate-500 mb-3">Hourly Forecast</p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {weatherDetails.hourlyForecast.map((hr: any, idx: number) => (
                   <div key={idx} className="bg-white/5 border border-white/5 rounded-2xl py-3 px-1 text-center flex flex-col items-center">
                     <p className="text-[9px] text-slate-400 font-bold">{hr.time}</p>
-                    <span className="text-lg my-1.5">{hr.icon}</span>
-                    <p className="text-xs font-black text-white">{hr.temp}°</p>
-                    <p className="text-[8px] text-slate-500 mt-1 font-mono">{hr.windSpeed} km/h</p>
+                    <span className="text-xl my-1.5">{hr.icon}</span>
+                    <p className="text-sm font-black text-white">{hr.temp}°C</p>
+                    {hr.rainChance > 0 && (
+                      <p className="text-[8px] text-blue-400 font-bold mt-0.5">🌧 {hr.rainChance}%</p>
+                    )}
+                    <p className="text-[8px] text-slate-500 mt-1">💨 {hr.windSpeed} km/h</p>
                   </div>
                 ))}
               </div>
