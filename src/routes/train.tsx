@@ -394,13 +394,12 @@ function TrainPage() {
   const autoPausedRef = useRef(false);
 
   // ── Weather fetch (Open-Meteo — free, no API key required) ──────────────────
-  useEffect(() => {
+  const refreshWeatherData = useCallback(async () => {
     if (screen !== "hero") return;
+    setLoadingWeather(true);
 
     const fetchWeather = async (lat: number, lon: number, city?: string) => {
       if (city) setCityName(city);
-      setLoadingWeather(true);
-
       try {
         // Open-Meteo: completely free, no API key, no registration needed
         const [wRes, aqRes] = await Promise.all([
@@ -419,7 +418,6 @@ function TrainPage() {
         const wData = await wRes.json();
         const aqData = aqRes ? await aqRes.json() : null;
 
-        
         const current = wData.current;
         const wInfo = getWmoWeather(current.weather_code);
         
@@ -453,14 +451,13 @@ function TrainPage() {
           };
         });
 
-        // Find the correct index for the current hour by matching the time string.
-        // Open-Meteo returns times in the location's local timezone (because timezone=auto),
-        // so we match the current hour using the location's local time offset.
-        const localTimeMs = Date.now() + (wData.utc_offset_seconds * 1000);
-        const nowIso = new Date(localTimeMs).toISOString().slice(0, 13); // e.g. "2026-05-29T15"
-        let currentHourIdx = wData.hourly.time.findIndex((t: string) => t.startsWith(nowIso));
+        // Use the current local hour returned directly from the API current.time parameter
+        const currentLocalHour = wData.current.time.slice(0, 13); // e.g. "2026-05-29T15"
+        let currentHourIdx = wData.hourly.time.findIndex((t: string) => t.startsWith(currentLocalHour));
         if (currentHourIdx < 0) {
-          currentHourIdx = new Date(localTimeMs).getUTCHours(); // fallback using shifted UTC hour
+          // fallback using shifted UTC hour
+          const localTimeMs = Date.now() + (wData.utc_offset_seconds * 1000);
+          currentHourIdx = new Date(localTimeMs).getUTCHours();
         }
 
         const hourlyList = wData.hourly.time.slice(currentHourIdx, currentHourIdx + 6).map((timeStr: string, idx: number) => {
@@ -547,7 +544,33 @@ function TrainPage() {
     } else {
       fallbackIpGeolocation();
     }
-  }, [screen, showIntro, showWeatherModal]);
+  }, [screen, cityName]);
+
+  // Trigger fetch on mount and on modal show / screen change
+  useEffect(() => {
+    refreshWeatherData();
+  }, [refreshWeatherData, showIntro, showWeatherModal]);
+
+  // Refresh weather every 10 minutes automatically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (screen === "hero") {
+        refreshWeatherData();
+      }
+    }, 600000);
+    return () => clearInterval(interval);
+  }, [refreshWeatherData, screen]);
+
+  // Refresh weather when window is refocused
+  useEffect(() => {
+    const handleFocus = () => {
+      if (screen === "hero") {
+        refreshWeatherData();
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refreshWeatherData, screen]);
 
   // ── GPS watch ─────────────────────────────────────────────────────────────
   const startGps = useCallback(() => {
@@ -1146,7 +1169,17 @@ function TrainPage() {
               </h3>
               <p className="text-[8px] text-slate-400 uppercase tracking-widest mt-0.5">PulsePeak Weather</p>
             </div>
-            <div className="w-9" />
+            <button
+              onClick={() => {
+                refreshWeatherData();
+                toast.success("Refreshing weather data...");
+              }}
+              disabled={loadingWeather}
+              className={`h-9 w-9 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition active:scale-90 ${loadingWeather ? "animate-spin text-blue-400" : ""}`}
+              title="Refresh weather data"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
           </div>
 
           {/* Current Hero */}
