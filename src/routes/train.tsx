@@ -329,9 +329,11 @@ function TrackMap({ route, center, activityColor }: { route: Coords[]; center: C
         attributionControl: false,
       });
 
-      // Add OpenStreetMap tiles
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
+      // Add CartoDB Dark Matter tiles (premium dark mode tiles, completely keyless & free!)
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
       }).addTo(map);
 
       // Add Polyline
@@ -397,7 +399,7 @@ function TrackMap({ route, center, activityColor }: { route: Coords[]; center: C
     );
   }
 
-  return <div ref={mapRef} className={`w-full h-full rounded-2xl ${!gmapsKey ? "leaflet-dark-mode z-10" : ""}`} />;
+  return <div ref={mapRef} className="w-full h-full rounded-2xl z-10" />;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -824,9 +826,6 @@ function TrainPage() {
   return (
     <PhoneShell hideNav={showIntro || screen !== "hero"} bgClass={showIntro ? "bg-black" : "bg-[#060d1f]"}>
       <style dangerouslySetInnerHTML={{ __html: `
-        .leaflet-dark-mode {
-          filter: invert(90%) hue-rotate(200deg) brightness(85%) contrast(95%);
-        }
         .leaflet-container {
           background: #060d1f !important;
         }
