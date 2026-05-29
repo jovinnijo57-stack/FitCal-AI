@@ -341,6 +341,7 @@ function TrainPage() {
   const [weatherDetails, setWeatherDetails] = useState<any>(null);
   const [showWeatherModal, setShowWeatherModal] = useState(false);
   const [loadingWeather, setLoadingWeather] = useState(false);
+  const [show5Day, setShow5Day] = useState(false);
 
   // Auto-pause detection
   const lastMovedRef = useRef<number>(Date.now());
@@ -389,7 +390,8 @@ function TrainPage() {
           return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
         };
 
-        const dailyList = wData.daily.time.slice(0, 3).map((timeStr: string, idx: number) => {
+        // Fetch all 7 days Open-Meteo returns (used for both 3-day preview and 5-day/7-day expand)
+        const dailyList = wData.daily.time.map((timeStr: string, idx: number) => {
           const date = new Date(timeStr);
           const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
           const dayName = idx === 0 ? "Today" : idx === 1 ? "Tomorrow" : days[date.getDay()];
@@ -401,6 +403,7 @@ function TrainPage() {
             icon: info.icon,
             tempMax: Math.round(wData.daily.temperature_2m_max[idx]),
             tempMin: Math.round(wData.daily.temperature_2m_min[idx]),
+            rainChance: wData.daily.precipitation_probability_max[idx] ?? 0,
           };
         });
 
@@ -1101,24 +1104,38 @@ function TrainPage() {
             </div>
           </div>
 
-          {/* 3-Day Forecast */}
+          {/* Daily Forecast — 3 days by default, expands to 7 when toggled */}
           <div className="px-5 mb-4 shrink-0">
-            <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4.5 space-y-3.5">
-              {weatherDetails.dailyForecast.map((day: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
+            <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4 space-y-0">
+              <p className="text-[8px] uppercase tracking-widest font-black text-slate-500 mb-3">
+                {show5Day ? "7-Day Forecast" : "3-Day Forecast"}
+              </p>
+              {(show5Day ? weatherDetails.dailyForecast : weatherDetails.dailyForecast.slice(0, 3)).map((day: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between py-2.5 border-b border-slate-800/50 last:border-0"
+                >
+                  <div className="flex items-center gap-2.5 w-24">
                     <span className="text-lg">{day.icon}</span>
-                    <p className="text-xs font-bold text-slate-200">{day.day}</p>
+                    <p className="text-xs font-bold text-slate-200 truncate">{day.day}</p>
                   </div>
-                  <p className="text-[10px] text-slate-400 font-medium">{day.desc}</p>
-                  <p className="text-xs font-black text-white">
+                  <div className="flex flex-col items-center flex-1">
+                    <p className="text-[10px] text-slate-400 font-medium">{day.desc}</p>
+                    {day.rainChance > 0 && (
+                      <p className="text-[8px] text-blue-400 font-bold mt-0.5">🌧 {day.rainChance}%</p>
+                    )}
+                  </div>
+                  <p className="text-xs font-black text-white text-right">
                     {day.tempMax}° / <span className="text-slate-400 font-bold">{day.tempMin}°</span>
                   </p>
                 </div>
               ))}
-              <div className="pt-2.5 border-t border-slate-800/80">
-                <button className="w-full py-2.5 rounded-2xl bg-white/5 border border-white/5 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:text-white transition active:scale-98">
-                  5-Day Forecast
+              <div className="pt-3">
+                <button
+                  onClick={() => setShow5Day((v) => !v)}
+                  className="w-full py-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-[9px] font-black uppercase tracking-widest text-blue-400 hover:bg-blue-500/15 hover:text-blue-300 transition active:scale-98 flex items-center justify-center gap-1.5"
+                >
+                  <span>{show5Day ? "▲ Show Less" : "▼ 7-Day Forecast"}</span>
                 </button>
               </div>
             </div>
