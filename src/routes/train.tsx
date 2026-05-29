@@ -476,7 +476,7 @@ function TrainPage() {
     } else {
       fallbackIpGeolocation();
     }
-  }, [screen]);
+  }, [screen, showIntro, showWeatherModal]);
 
   // ── GPS watch ─────────────────────────────────────────────────────────────
   const startGps = useCallback(() => {
@@ -1195,12 +1195,6 @@ function TrainPage() {
             ))}
           </div>
 
-          {/* Footer branding */}
-          <div className="text-center py-2 shrink-0">
-            <p className="text-[8px] text-slate-500 font-semibold tracking-wider">
-              Data provided by PulsePeak Weather & Open-Meteo
-            </p>
-          </div>
         </div>
       )}
     </PhoneShell>
